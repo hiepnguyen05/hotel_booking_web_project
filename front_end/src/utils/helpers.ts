@@ -254,8 +254,22 @@ export const getImageUrl = (imagePath: string, baseUrl?: string): string => {
   if (!imagePath) return '/placeholder-image.jpg';
   if (imagePath.startsWith('http')) return imagePath;
   
-  const base = baseUrl || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const base = baseUrl || 'http://localhost:3000';
   return `${base}/uploads/${imagePath}`;
+};
+
+export const getFullImageUrl = (imagePath: string, baseUrl?: string): string => {
+  // If the image path is already a full URL, return it as is
+  if (imagePath.startsWith('http')) {
+    return imagePath;
+  }
+  
+  // Use provided baseUrl, or default to localhost:3000
+  const base = baseUrl || 'http://localhost:3000';
+  
+  // Remove leading slash if it exists to avoid double slashes
+  const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+  return `${base}/${cleanPath}`;
 };
 
 export const preloadImage = (src: string): Promise<void> => {

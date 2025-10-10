@@ -1,5 +1,8 @@
 const Booking = require("../models/booking.model");
 const Room = require("../models/room.model");
+const MoMoService = require("./momo.service");
+const EmailService = require("./email.service");
+const User = require("../models/user.model");
 
 class BookingService {
     async createBooking(userId, bookingData) {
@@ -22,8 +25,28 @@ class BookingService {
             throw new Error("Room not found");
         }
 
-        const checkIn = new Date(checkInDate);
-        const checkOut = new Date(checkOutDate);
+        // Ensure dates are Date objects and handle timezone properly
+        let checkIn, checkOut;
+        
+        // If dates are strings without time components, treat them as date-only (no timezone conversion)
+        if (typeof checkInDate === 'string' && checkInDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Date-only string like '2025-10-07' - parse as date in local timezone
+            const [year, month, day] = checkInDate.split('-').map(Number);
+            checkIn = new Date(year, month - 1, day); // Month is 0-indexed
+        } else {
+            // Full date string or Date object
+            checkIn = new Date(checkInDate);
+        }
+        
+        if (typeof checkOutDate === 'string' && checkOutDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Date-only string like '2025-10-08' - parse as date in local timezone
+            const [year, month, day] = checkOutDate.split('-').map(Number);
+            checkOut = new Date(year, month - 1, day); // Month is 0-indexed
+        } else {
+            // Full date string or Date object
+            checkOut = new Date(checkOutDate);
+        }
+
         const msPerDay = 1000 * 60 * 60 * 24;
         const nights = Math.ceil((checkOut - checkIn) / msPerDay);
         if (!Number.isFinite(nights) || nights < 1) {
@@ -54,41 +77,84 @@ class BookingService {
             email,
             phone,
             notes,
-            paymentMethod,
+            paymentMethod, // Luôn là "online"
             bookingCode,
             status: "pending",
-            paymentStatus: paymentMethod === "online" ? "pending" : "pending",
+            paymentStatus: "pending", // Luôn là "pending" cho thanh toán trực tuyến
         });
-        return await booking.save();
+        
+        const savedBooking = await booking.save();
+        return savedBooking;
     }
 
     async checkAvailability(roomId, checkInDate, checkOutDate) {
-        console.log('Checking availability for room:', roomId, { checkInDate, checkOutDate });
+        // Ensure dates are Date objects and handle timezone properly
+        let checkIn, checkOut;
+        
+        // If dates are strings without time components, treat them as date-only (no timezone conversion)
+        if (typeof checkInDate === 'string' && checkInDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Date-only string like '2025-10-07' - parse as date in local timezone
+            const [year, month, day] = checkInDate.split('-').map(Number);
+            checkIn = new Date(year, month - 1, day); // Month is 0-indexed
+        } else {
+            // Full date string or Date object
+            checkIn = new Date(checkInDate);
+        }
+        
+        if (typeof checkOutDate === 'string' && checkOutDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Date-only string like '2025-10-08' - parse as date in local timezone
+            const [year, month, day] = checkOutDate.split('-').map(Number);
+            checkOut = new Date(year, month - 1, day); // Month is 0-indexed
+        } else {
+            // Full date string or Date object
+            checkOut = new Date(checkOutDate);
+        }
 
-        // Sửa lại truy vấn để tìm đúng các đặt phòng chồng chéo với khoảng thời gian
-        return await Booking.find({
+        // Tìm các đặt phòng chồng chéo với khoảng thời gian
+        const result = await Booking.find({
             room: roomId,
             status: { $in: ["pending", "confirmed"] },
             $and: [
-                { checkInDate: { $lt: checkOutDate } },
-                { checkOutDate: { $gt: checkInDate } }
+                { checkInDate: { $lt: checkOut } },
+                { checkOutDate: { $gt: checkIn } }
             ]
         });
+        
+        return result;
     }
 
     async checkAvailabilityForRooms(checkInDate, checkOutDate) {
-        console.log('Checking availability for dates:', { checkInDate, checkOutDate });
+        // Ensure dates are Date objects and handle timezone properly
+        let checkIn, checkOut;
+        
+        // If dates are strings without time components, treat them as date-only (no timezone conversion)
+        if (typeof checkInDate === 'string' && checkInDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Date-only string like '2025-10-07' - parse as date in local timezone
+            const [year, month, day] = checkInDate.split('-').map(Number);
+            checkIn = new Date(year, month - 1, day); // Month is 0-indexed
+        } else {
+            // Full date string or Date object
+            checkIn = new Date(checkInDate);
+        }
+        
+        if (typeof checkOutDate === 'string' && checkOutDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Date-only string like '2025-10-08' - parse as date in local timezone
+            const [year, month, day] = checkOutDate.split('-').map(Number);
+            checkOut = new Date(year, month - 1, day); // Month is 0-indexed
+        } else {
+            // Full date string or Date object
+            checkOut = new Date(checkOutDate);
+        }
 
-        // Sửa lại truy vấn để tìm đúng các phòng đã đặt trong khoảng thời gian
+        // Tìm các phòng đã đặt trong khoảng thời gian
         const bookings = await Booking.find({
             status: { $in: ["pending", "confirmed"] },
             $and: [
-                { checkInDate: { $lt: checkOutDate } },
-                { checkOutDate: { $gt: checkInDate } }
+                { checkInDate: { $lt: checkOut } },
+                { checkOutDate: { $gt: checkIn } }
             ]
         }).distinct("room");
 
-        console.log(`Found ${bookings.length} booked rooms in the date range`);
         return bookings.map((id) => id.toString());
     }
 
@@ -116,6 +182,7 @@ class BookingService {
         booking.status = "cancelled";
         // If online and paid, downstream flow should handle refund later
         await booking.save();
+        
         return booking;
     }
 
@@ -135,6 +202,7 @@ class BookingService {
         if (next.checkInDate || next.checkOutDate) {
             const newCheckIn = new Date(next.checkInDate || booking.checkInDate);
             const newCheckOut = new Date(next.checkOutDate || booking.checkOutDate);
+            
             const msPerDay = 1000 * 60 * 60 * 24;
             const nights = Math.ceil((newCheckOut - newCheckIn) / msPerDay);
             if (!Number.isFinite(nights) || nights < 1) {
@@ -172,6 +240,304 @@ class BookingService {
         await booking.save();
         return booking;
     }
+
+    async processPayment(bookingId, paymentMethod) {
+        try {
+            const booking = await Booking.findById(bookingId);
+            if (!booking) {
+                throw new Error("Booking not found");
+            }
+
+            // Cập nhật trạng thái thanh toán
+            booking.paymentStatus = 'paid';
+            
+            // Nếu là thanh toán trực tuyến và booking đang ở trạng thái pending, 
+            // thì có thể tự động xác nhận
+            if (paymentMethod === 'online' && booking.status === 'pending') {
+                booking.status = 'confirmed';
+            }
+
+            await booking.save();
+            
+            return { 
+                success: true, 
+                transactionId: `TXN${Date.now()}${Math.floor(Math.random() * 10000)}` 
+            };
+        } catch (error) {
+            console.error("Process payment error:", error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Create MoMo payment for booking
+     * @param {string} bookingId - Booking ID
+     * @param {string} returnUrl - URL to redirect after payment (using ngrok for user redirect)
+     * @param {string} notifyUrl - URL for server notification (using ngrok for MoMo callback)
+     * @param {Object} req - Express request object for ngrok detection
+     * @returns {Promise<Object>} Payment response with QR code and payment URL
+     */
+    async createMoMoPayment(bookingId, returnUrl, notifyUrl, req = null) {
+      try {
+        const booking = await Booking.findById(bookingId).populate('room');
+        if (!booking) {
+          throw new Error("Booking not found");
+        }
+
+        // Create order info
+        const orderInfo = `Thanh toán đặt phòng ${booking.bookingCode} - ${booking.room.name}`;
+        
+        // Use NGROK URL from environment variables for backend callback
+        const NGROK_URL = process.env.NGROK_URL || process.env.NGROK_BACKEND_URL || 'https://braylen-noisiest-biennially.ngrok-free.dev';
+        
+        // For notifyUrl (ipnUrl) - MoMo will send POST request to this URL
+        const finalNotifyUrl = `${NGROK_URL}/api/bookings/momo/callback`;
+        
+        // For returnUrl (redirectUrl) - MoMo will redirect user to this URL after payment
+        // Use localhost:3000 for frontend access during development
+        let finalReturnUrl = returnUrl;
+        
+        // If returnUrl is not provided or is localhost, use localhost:3000
+        if (!returnUrl || returnUrl.includes('localhost') || returnUrl.includes('127.0.0.1')) {
+          // Use localhost:3000 for frontend access
+          finalReturnUrl = `http://localhost:3000/payment-result`;
+        }
+        
+        console.log('[NETWORK] Final notifyUrl (ipnUrl):', finalNotifyUrl);
+        console.log('[NETWORK] Final returnUrl (redirectUrl):', finalReturnUrl);
+      
+        // Save the returnUrl to the booking for later use in callback
+        booking.momoReturnUrl = finalReturnUrl;
+        await booking.save();
+
+        // Create payment with ngrok URLs
+        const paymentResult = await MoMoService.createPayment(
+          orderInfo,
+          bookingId,
+          booking.totalPrice,
+          finalReturnUrl,    // redirectUrl - where MoMo redirects user after payment
+          finalNotifyUrl     // ipnUrl - where MoMo sends payment result
+        );
+
+        console.log('[NETWORK] MoMo payment result:', JSON.stringify(paymentResult, null, 2));
+        return paymentResult;
+      } catch (error) {
+        console.error("Create MoMo payment error:", error);
+        return { success: false, error: error.message };
+      }
+    }
+
+    /**
+     * Handle MoMo payment callback
+     * @param {Object} callbackData - Data received from MoMo callback
+     * @returns {Promise<Object>} Verification result
+     */
+    async handleMoMoCallback(callbackData) {
+        try {
+            console.log("=== MOMO CALLBACK SERVICE ===");
+            console.log("[SERVICE] Callback data received:", JSON.stringify(callbackData, null, 2));
+            
+            // Verify callback signature
+            const verificationResult = MoMoService.verifyCallback(callbackData);
+            console.log("[SERVICE] Verification result:", JSON.stringify(verificationResult, null, 2));
+            
+            if (!verificationResult.isValid) {
+                console.error("[SERVICE] Invalid MoMo callback signature");
+                return { success: false, error: "Invalid MoMo callback signature" };
+            }
+
+            const { orderId, resultCode, transId } = verificationResult.data;
+            console.log(`[SERVICE] Processing callback for orderId: ${orderId}, resultCode: ${resultCode}`);
+            
+            // Find booking by orderId (which is bookingId) and populate user and room
+            const booking = await Booking.findById(orderId).populate('room').populate('user');
+            console.log("[SERVICE] Found booking:", booking ? JSON.stringify(booking, null, 2) : "null");
+            
+            if (!booking) {
+                console.error("[SERVICE] Booking not found for orderId:", orderId);
+                return { success: false, error: "Booking not found" };
+            }
+
+            // Update booking status based on payment result
+            if (resultCode === 0) {
+                console.log("[SERVICE] Payment successful, updating booking status");
+                // Payment successful
+                booking.paymentStatus = 'paid';
+                booking.status = 'confirmed';
+                // Save MoMo transaction ID
+                booking.momoTransactionId = transId;
+                console.log("[SERVICE] Updated booking status to paid and confirmed");
+                
+                // Gửi email xác nhận đặt phòng
+                if (booking.user && booking.room) {
+                    console.log("[SERVICE] Sending booking confirmation email");
+                    const emailResult = await EmailService.sendBookingConfirmation(booking, booking.room, booking.user);
+                    console.log("[SERVICE] Email result:", JSON.stringify(emailResult, null, 2));
+                    
+                    if (!emailResult.success) {
+                        console.error('[SERVICE] Failed to send booking confirmation email:', emailResult.error);
+                    }
+                }
+            } else {
+                console.log("[SERVICE] Payment failed, updating booking status");
+                // Payment failed
+                booking.paymentStatus = 'failed';
+                console.log("[SERVICE] Updated booking status to failed");
+            }
+
+            await booking.save();
+            console.log("[SERVICE] Booking updated successfully:", {
+                bookingId: booking._id,
+                paymentStatus: booking.paymentStatus,
+                bookingStatus: booking.status
+            });
+
+            return {
+                success: true,
+                data: {
+                    bookingId: booking._id,
+                    paymentStatus: booking.paymentStatus,
+                    bookingStatus: booking.status
+                }
+            };
+        } catch (error) {
+            console.error("[SERVICE] Handle MoMo callback error:", error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Get booking by ID
+     * @param {string} bookingId - Booking ID
+     * @returns {Promise<Object>} Booking object
+     */
+    async getBookingById(bookingId) {
+        try {
+            const booking = await Booking.findById(bookingId).populate('room').populate('user');
+            return booking;
+        } catch (error) {
+            console.error("Get booking by ID error:", error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update booking
+     * @param {string} bookingId - Booking ID
+     * @param {string} userId - User ID
+     * @param {Object} data - Booking data to update
+     * @returns {Promise<Object>} Updated booking
+     */
 }
 
-module.exports = new BookingService();
+// Function to get local IP address that can be accessed from other devices
+function getLocalIP() {
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  
+  console.log('[NETWORK] Detecting network interfaces...');
+  
+  // Try to find a suitable IP address
+  for (const name of Object.keys(interfaces)) {
+    console.log(`[NETWORK] Checking interface: ${name}`);
+    for (const iface of interfaces[name]) {
+      console.log(`[NETWORK] Interface details:`, iface);
+      // Skip internal (loopback) and IPv6 addresses
+      if (iface.internal || iface.family !== 'IPv4') {
+        continue;
+      }
+      
+      // Skip docker and virtual interfaces that start with 172.16
+      if (iface.address.startsWith('172.16')) {
+        continue;
+      }
+      
+      // Skip common virtual machine interfaces
+      if (iface.address.startsWith('10.') || iface.address.startsWith('192.168.56.')) {
+        continue;
+      }
+      
+      // Return the first non-internal IPv4 address that's not a docker/virtual interface
+      if (!iface.internal && iface.family === 'IPv4') {
+        console.log(`[NETWORK] Using local IP for network access: ${iface.address}`);
+        return iface.address;
+      }
+    }
+  }
+  
+  // If we didn't find a suitable IP above, try a different approach
+  // Look for 192.168.x.x addresses which are common in home networks
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.internal || iface.family !== 'IPv4') {
+        continue;
+      }
+      
+      // Look for common local network patterns
+      if (iface.address.startsWith('192.168.')) {
+        console.log(`[NETWORK] Using 192.168.x.x IP for network access: ${iface.address}`);
+        return iface.address;
+      }
+    }
+  }
+  
+  // Fallback to localhost if no suitable IP found
+  console.log('[NETWORK] No suitable local IP found, using localhost');
+  return 'localhost';
+}
+
+// Function to detect if we're using ngrok based on request headers
+function isUsingNgrok(req) {
+  // Check if request is coming through ngrok
+  const host = req.get('host') || '';
+  const forwardedHost = req.get('x-forwarded-host') || '';
+  
+  console.log('[NGROK] Checking if using ngrok:');
+  console.log('[NGROK] Host:', host);
+  console.log('[NGROK] Forwarded host:', forwardedHost);
+  
+  // Check if host contains ngrok domains
+  const isNgrokHost = host.includes('.ngrok.io') || 
+                      host.includes('.ngrok.app') || 
+                      host.includes('.ngrok-free.dev') ||
+                      forwardedHost.includes('.ngrok.io') || 
+                      forwardedHost.includes('.ngrok.app') || 
+                      forwardedHost.includes('.ngrok-free.dev');
+  
+  console.log('[NGROK] Is ngrok host:', isNgrokHost);
+  return isNgrokHost;
+}
+
+// Function to get ngrok URL from request
+function getNgrokUrl(req) {
+  const host = req.get('host') || '';
+  const forwardedHost = req.get('x-forwarded-host') || '';
+  const protocol = req.get('x-forwarded-proto') || 'https';
+  
+  console.log('[NGROK] Getting ngrok URL:');
+  console.log('[NGROK] Host:', host);
+  console.log('[NGROK] Forwarded host:', forwardedHost);
+  console.log('[NGROK] Protocol:', protocol);
+  
+  // Prefer forwarded host if available (more reliable with ngrok)
+  const ngrokHost = forwardedHost || host;
+  
+  if (ngrokHost) {
+    const ngrokUrl = `${protocol}://${ngrokHost}`;
+    console.log('[NGROK] Constructed ngrok URL:', ngrokUrl);
+    return ngrokUrl;
+  }
+  
+  return null;
+}
+
+// Create instance of BookingService
+const bookingService = new BookingService();
+
+// Export the service instance
+module.exports = bookingService;
+
+// Export the utility functions for testing
+module.exports.getLocalIP = getLocalIP;
+module.exports.isUsingNgrok = isUsingNgrok;
+module.exports.getNgrokUrl = getNgrokUrl;

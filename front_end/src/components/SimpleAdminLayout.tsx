@@ -31,7 +31,7 @@ export function SimpleAdminLayout() {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
+      <div className="w-1/5 bg-white shadow-lg min-w-[100px] max-w-[280px] admin-sidebar">
         <div className="p-4 border-b">
           <h2 className="text-lg font-semibold text-gray-800">
             NgocHiepHotel Admin
@@ -43,6 +43,7 @@ export function SimpleAdminLayout() {
             <Button
               key={item.key}
               variant={getCurrentPage() === item.key ? "default" : "ghost"}
+              size="default"
               className="w-full justify-start mb-1 mx-2"
               onClick={() => navigate(item.path)}
             >
@@ -55,6 +56,7 @@ export function SimpleAdminLayout() {
         <div className="absolute bottom-4 left-2 right-2">
           <Button
             variant="ghost"
+            size="default"
             className="w-full justify-start text-red-600 hover:text-red-700"
             onClick={handleLogout}
           >
@@ -65,7 +67,7 @@ export function SimpleAdminLayout() {
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="w-4/5 flex flex-col admin-main">
         <header className="bg-white shadow-sm border-b p-4">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Admin Panel</h1>

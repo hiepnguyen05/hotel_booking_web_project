@@ -11,6 +11,9 @@ import { AddRoomDialog } from "./AddRoomDialog";
 import { EditRoomDialog } from "./EditRoomDialog";
 
 
+// Get the API base URL from environment variables or use default
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000';
+
 const getStatusBadge = (status: string) => {
   switch (status) {
     case 'available':
@@ -35,7 +38,7 @@ const getRoomTypeLabel = (type: string) => {
 };
 
 export function RoomManagement() {
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [rooms, setRooms] = useState([] as Room[]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -46,9 +49,9 @@ export function RoomManagement() {
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [selectedRoom, setSelectedRoom] = useState(null as Room | null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
+  const [roomToDelete, setRoomToDelete] = useState(null as Room | null);
 
   // Load rooms
   const loadRooms = async () => {
@@ -119,11 +122,11 @@ export function RoomManagement() {
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Button className="" variant="default" size="default" onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Thêm phòng
           </Button>
-          <Button variant="outline" onClick={loadRooms} disabled={isLoading}>
+          <Button className="" variant="outline" size="default" onClick={loadRooms} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Làm mới
           </Button>
@@ -196,9 +199,14 @@ export function RoomManagement() {
                   {room.images && room.images.length > 0 && (
                     <div className="w-full h-32 rounded-lg overflow-hidden">
                       <img
-                        src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${room.images[0]}`}
+                        src={room.images[0].startsWith('http') ? room.images[0] : room.images[0].startsWith('/uploads') ? `${API_BASE_URL.replace('/api', '')}${room.images[0]}` : `${API_BASE_URL}${room.images[0].startsWith('/') ? room.images[0] : `/${room.images[0]}`}`}
                         alt={room.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback for broken images
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'https://placehold.co/300x200?text=No+Image'; // Placeholder image
+                        }}
                       />
                     </div>
                   )}
@@ -242,18 +250,18 @@ export function RoomManagement() {
 
                   <div className="flex space-x-2 pt-4">
                     <Button
+                      className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50"
                       size="sm"
                       variant="outline"
-                      className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50"
                       onClick={() => handleEditRoom(room)}
                     >
                       <Edit className="h-4 w-4 mr-1" />
                       Sửa
                     </Button>
                     <Button
+                      className="flex-1"
                       size="sm"
                       variant="destructive"
-                      className="flex-1"
                       onClick={() => handleDeleteRoom(room)}
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
@@ -269,6 +277,8 @@ export function RoomManagement() {
           {pagination.pages > 1 && (
             <div className="flex justify-center items-center space-x-2 mt-6">
               <Button
+                className=""
+                size="default"
                 variant="outline"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -281,6 +291,8 @@ export function RoomManagement() {
               </span>
 
               <Button
+                className=""
+                size="default"
                 variant="outline"
                 disabled={currentPage === pagination.pages}
                 onClick={() => setCurrentPage(prev => Math.min(pagination.pages, prev + 1))}
@@ -326,10 +338,17 @@ export function RoomManagement() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-row justify-end gap-3 mt-6">
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button 
+              className="" 
+              size="default" 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
               Hủy
             </Button>
             <Button
+              className=""
+              size="default"
               variant="destructive"
               onClick={confirmDeleteRoom}
             >

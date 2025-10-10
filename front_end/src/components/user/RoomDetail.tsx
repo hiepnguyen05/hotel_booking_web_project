@@ -26,6 +26,9 @@ import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { useRoomStore } from "../../store/roomStore";
 import { roomService } from "../../services/roomService";
 
+// Get the API base URL from environment variables or use default
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000';
+
 interface RoomDetailProps {
   roomId: string;
   onBack: () => void;
@@ -66,9 +69,9 @@ const amenityIcons: Record<string, any> = {
 
 export function RoomDetail({ roomId, onBack, onBookNow, user }: RoomDetailProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [room, setRoom] = useState<any>(null);
+  const [room, setRoom] = useState(null as any);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null as string | null);
   const { selectedRoom } = useRoomStore();
 
   // Load room data from backend
@@ -129,7 +132,7 @@ export function RoomDetail({ roomId, onBack, onBookNow, user }: RoomDetailProps)
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4 text-red-600">{error || 'Không tìm thấy phòng'}</h2>
-          <Button onClick={onBack}>Quay lại</Button>
+          <Button variant="default" size="default" className="" onClick={onBack}>Quay lại</Button>
         </div>
       </div>
     );
@@ -143,7 +146,7 @@ export function RoomDetail({ roomId, onBack, onBookNow, user }: RoomDetailProps)
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4 text-red-600">Không tìm thấy thông tin phòng</h2>
           <p className="text-gray-600 mb-4">Không thể xác định ID phòng hợp lệ.</p>
-          <Button onClick={onBack}>Quay lại</Button>
+          <Button variant="default" size="default" className="" onClick={onBack}>Quay lại</Button>
         </div>
       </div>
     );
@@ -162,6 +165,7 @@ export function RoomDetail({ roomId, onBack, onBookNow, user }: RoomDetailProps)
         <div className="max-w-7xl mx-auto px-4 py-4">
           <Button
             variant="ghost"
+            size="default"
             onClick={onBack}
             className="mb-2"
           >
@@ -206,7 +210,11 @@ export function RoomDetail({ roomId, onBack, onBookNow, user }: RoomDetailProps)
                 <div className="aspect-video relative">
                   <ImageWithFallback
                     src={room.images && room.images.length > 0 
-                      ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${room.images[selectedImageIndex]}` 
+                      ? room.images[selectedImageIndex].startsWith('http')
+                        ? room.images[selectedImageIndex]
+                        : room.images[selectedImageIndex].startsWith('/uploads')
+                        ? `${API_BASE_URL.replace('/api', '')}${room.images[selectedImageIndex]}`
+                        : `${API_BASE_URL}${room.images[selectedImageIndex].startsWith('/') ? room.images[selectedImageIndex] : `/${room.images[selectedImageIndex]}`}`
                       : "https://images.unsplash.com/photo-1632598024410-3d8f24daab57?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHhsdXh1cnklMjBob3RlbCUyMHJvb20lMjBpbnRlcmlvcnxlbnwxfHx8fDE3NTkyMjkwNjR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"}
                     alt={room.name}
                     className="w-full h-full object-cover rounded-t-lg"
@@ -224,7 +232,7 @@ export function RoomDetail({ roomId, onBack, onBookNow, user }: RoomDetailProps)
                           }`}
                         >
                           <ImageWithFallback
-                            src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${image}`}
+                            src={image.startsWith('http') ? image : image.startsWith('/uploads') ? `${API_BASE_URL.replace('/api', '')}${image}` : `${API_BASE_URL}${image.startsWith('/') ? image : `/${image}`}`}
                             alt={`${room.name} ${index + 1}`}
                             className="w-full h-full object-cover"
                           />
@@ -355,9 +363,10 @@ export function RoomDetail({ roomId, onBack, onBookNow, user }: RoomDetailProps)
                 
                 {user ? (
                   <Button 
+                    variant="default"
+                    size="lg"
                     onClick={() => onBookNow(validRoomId)} 
                     className="w-full"
-                    size="lg"
                   >
                     Đặt phòng ngay
                   </Button>
@@ -367,8 +376,9 @@ export function RoomDetail({ roomId, onBack, onBookNow, user }: RoomDetailProps)
                       Đăng nhập để đặt phòng
                     </p>
                     <Button 
-                      onClick={onBack} 
                       variant="outline"
+                      size="default"
+                      onClick={onBack} 
                       className="w-full"
                     >
                       Đăng nhập

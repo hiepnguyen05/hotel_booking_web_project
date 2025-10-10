@@ -16,7 +16,7 @@ class RoomController {
         try {
             const room = await RoomService.getById(req.params.roomId);
             if (!room) {
-                return formatResponse(res, 404, "Room not found");
+                return formatResponse(res, 404, "Room not found or not available");
             }
             return formatResponse(res, 200, "Room details retrieved successfully", room);
         } catch (error) {
@@ -237,10 +237,15 @@ class RoomController {
 
     async searchAvailableRooms(req, res) {
         try {
+            console.log('=== SEARCH AVAILABLE ROOMS CONTROLLER ===');
+            console.log('Request query:', req.query);
+            console.log('Request headers:', req.headers);
+            
             const { checkInDate, checkOutDate, adultCount, childCount, roomCount } = req.query;
 
             // Kiểm tra các trường bắt buộc
             if (!checkInDate || !checkOutDate || !adultCount || !roomCount) {
+                console.log('Missing required parameters');
                 return formatResponse(
                     res,
                     400,
@@ -257,12 +262,15 @@ class RoomController {
             const parsedChildCount = parseInt(childCount) || 0;
             const parsedRoomCount = parseInt(roomCount);
             if (isNaN(parsedAdultCount) || parsedAdultCount < 1) {
+                console.log('Invalid adultCount');
                 return formatResponse(res, 400, "adultCount must be a positive integer");
             }
             if (isNaN(parsedChildCount) || parsedChildCount < 0) {
+                console.log('Invalid childCount');
                 return formatResponse(res, 400, "childCount must be a non-negative integer");
             }
             if (isNaN(parsedRoomCount) || parsedRoomCount < 1) {
+                console.log('Invalid roomCount');
                 return formatResponse(res, 400, "roomCount must be a positive integer");
             }
 
@@ -270,8 +278,17 @@ class RoomController {
             const checkIn = new Date(checkInDate);
             const checkOut = new Date(checkOutDate);
             if (isNaN(checkIn) || isNaN(checkOut) || checkIn >= checkOut) {
+                console.log('Invalid dates');
                 return formatResponse(res, 400, "Invalid checkInDate or checkOutDate");
             }
+
+            console.log('Calling RoomService.searchAvailableRooms with parameters:', {
+                checkIn,
+                checkOut,
+                adultCount: parsedAdultCount,
+                childCount: parsedChildCount,
+                roomCount: parsedRoomCount
+            });
 
             // Tìm phòng khả dụng
             const rooms = await RoomService.searchAvailableRooms(
@@ -282,8 +299,12 @@ class RoomController {
                 parsedRoomCount
             );
 
+            console.log('Rooms found:', rooms.length);
             return formatResponse(res, 200, "Available rooms retrieved successfully", rooms);
         } catch (error) {
+            console.error('=== SEARCH AVAILABLE ROOMS ERROR ===');
+            console.error('Error details:', error);
+            console.error('Error stack:', error.stack);
             return formatResponse(res, 500, error.message);
         }
     }

@@ -7,7 +7,9 @@ const {
     lockUser,
     unlockUser,
     getAllBookings,
-    updateBookingStatus
+    updateBookingStatus,
+    getBookingStats,
+    processBookingPayment
 
 } = require("../controllers/admin.controller");
 const { authenticate, authorizeAdmin } = require("../middlewares/auth.middleware");
@@ -30,5 +32,7 @@ router.put("/users/:id/unlock", authenticate, authorizeAdmin, unlockUser);
 // Bookings (admin)
 router.get("/bookings", authenticate, authorizeAdmin, getAllBookings);
 router.put("/bookings/:id/status", authenticate, authorizeAdmin, updateBookingStatus);
+router.post("/bookings/:id/payment", authenticate, authorizeAdmin, processBookingPayment);
+router.get("/bookings/stats", authenticate, authorizeAdmin, getBookingStats);
 
 module.exports = router;

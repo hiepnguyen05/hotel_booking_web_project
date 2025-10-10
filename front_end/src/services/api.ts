@@ -1,5 +1,7 @@
-// API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+import { getApiBaseUrl } from '../utils/networkUtils';
+
+// API Configuration - automatically determined based on environment
+const API_BASE_URL = getApiBaseUrl();
 
 // API Client class
 class ApiClient {
@@ -26,7 +28,6 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    console.log('Making API request to:', url, options);
     
     const config: RequestInit = {
       headers: {
@@ -39,19 +40,15 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      console.log('API response:', response.status, response.statusText);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('API error response:', errorData);
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       const jsonData = await response.json();
-      console.log('API JSON response:', jsonData);
       return jsonData;
     } catch (error) {
-      console.error('API request failed:', error);
       throw error;
     }
   }
@@ -104,7 +101,6 @@ class ApiClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Upload failed:', error);
       throw error;
     }
   }
@@ -112,8 +108,3 @@ class ApiClient {
 
 // Create and export API client instance
 export const apiClient = new ApiClient(API_BASE_URL);
-
-
-
-
-

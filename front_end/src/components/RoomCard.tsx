@@ -3,6 +3,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Users, Bed, Wifi, Car, Utensils, Waves, Wind } from "lucide-react";
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { getRoomImageUrl } from '../utils/imageUtils';
 
 // Get the API base URL from environment variables or use default
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -42,23 +43,11 @@ export function RoomCard({ room, onViewRoom }: RoomCardProps) {
     }
   };
 
-  const getFullImageUrl = (imagePath: string) => {
-    // If the image path is already a full URL, return it as is
-    if (imagePath.startsWith('http')) {
-      return imagePath;
-    }
-    
-    // If it's a relative path, prepend the API base URL
-    // Remove leading slash if it exists to avoid double slashes
-    const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
-    return `${API_BASE_URL}/${cleanPath}`;
-  };
-
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
       <div className="relative">
         <ImageWithFallback
-          src={getFullImageUrl(room.image)}
+          src={getRoomImageUrl(room.image)}
           alt={room.name}
           className="w-full h-48 object-cover"
         />
@@ -115,12 +104,15 @@ export function RoomCard({ room, onViewRoom }: RoomCardProps) {
         <div className="flex space-x-2">
           <Button 
             variant="outline" 
+            size="default"
             className="flex-1"
             onClick={() => onViewRoom?.(room.id)}
           >
             Xem chi tiết
           </Button>
           <Button 
+            variant="default"
+            size="default"
             className="flex-1"
             onClick={() => onViewRoom?.(room.id)}
           >

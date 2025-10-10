@@ -187,3 +187,60 @@
 html {
   font-size: var(--font-size);
 }
+
+/* Responsive Admin Layout */
+@media (max-width: 768px) {
+  .admin-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .admin-main {
+    width: 100% !important;
+  }
+  
+  .admin-stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  
+  .admin-tab-buttons {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .admin-action-buttons {
+    flex-direction: column;
+    gap: 0.5rem !important;
+  }
+  
+  .admin-booking-card-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+  
+  .admin-booking-card-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .admin-booking-card-actions > * {
+    flex: 1;
+  }
+}
+
+/* Ensure proper proportions */
+.admin-sidebar {
+  flex: 0 0 20%;
+  min-width: 100px;
+  max-width: 280px;
+}
+
+.admin-main {
+  flex: 0 0 80%;
+}

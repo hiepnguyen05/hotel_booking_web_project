@@ -67,13 +67,21 @@ const bookingSchema = new mongoose.Schema(
         },
         paymentMethod: {
             type: String,
-            enum: ["direct", "online"],
+            enum: ["online"], // Chỉ giữ lại phương thức thanh toán trực tuyến
             required: true,
         },
         paymentStatus: {
             type: String,
             enum: ["pending", "paid", "failed"],
             default: "pending",
+        },
+        momoTransactionId: {
+            type: String,
+            trim: true,
+        },
+        momoReturnUrl: {
+            type: String,
+            trim: true,
         },
         bookingCode: {
             type: String,

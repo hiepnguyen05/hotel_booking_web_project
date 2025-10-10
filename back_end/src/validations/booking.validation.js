@@ -11,7 +11,7 @@ const bookingSchema = Joi.object({
     email: Joi.string().email().required(),
     phone: Joi.string().pattern(/^\d{10,15}$/).required(),
     notes: Joi.string().optional(),
-    paymentMethod: Joi.string().valid("direct", "online").required(),
+    paymentMethod: Joi.string().valid("online").required(), // Chỉ giữ lại phương thức thanh toán trực tuyến
 });
 
 const validateBooking = (req, res, next) => {

@@ -255,7 +255,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   {room.images.map((image, index) => (
                     <div key={index} className="relative">
                       <img
-                        src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${image}`}
+                        src={`${'http://localhost:3000'}${image}`}
                         alt={`Room ${index + 1}`}
                         className="w-full h-20 object-cover rounded"
                       />

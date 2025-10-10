@@ -22,7 +22,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { roomService, Room } from "../services/roomService";
 
 // Get the API base URL from environment variables or use default
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000';
 
 interface RoomSearchResultsProps {
   searchParams: {
@@ -73,7 +73,7 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
   }, [searchParams]);
 
   const getAmenityIcon = (amenity: string) => {
-    const iconMap: { [key: string]: React.ReactNode } = {
+    const iconMap: { [key: string]: any } = {
       'wifi': <Wifi className="h-4 w-4" />,
       'parking': <Car className="h-4 w-4" />,
       'breakfast': <Coffee className="h-4 w-4" />,
@@ -90,10 +90,18 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
       return imagePath;
     }
     
-    // If it's a relative path, prepend the API base URL
+    // If it's a relative path that starts with /uploads, serve it from the base URL without /api
+    if (imagePath.startsWith('/uploads')) {
+      const baseUrlWithoutApi = API_BASE_URL.replace('/api', '');
+      return `${baseUrlWithoutApi}${imagePath}`;
+    }
+    
+    // For other relative paths, prepend the API base URL
     // Remove leading slash if it exists to avoid double slashes
     const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
-    return `${API_BASE_URL}/${cleanPath}`;
+    // Ensure API_BASE_URL doesn't end with a slash
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+    return `${baseUrl}/${cleanPath}`;
   };
 
   const calculateNights = () => {
@@ -123,6 +131,7 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Button
             variant="ghost"
+            size="default"
             onClick={onBack}
             className="mb-2"
           >
@@ -161,7 +170,7 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
           <Card>
             <CardContent className="text-center py-12">
               <p className="text-red-600 mb-4">{error}</p>
-              <Button onClick={() => window.location.reload()}>
+              <Button variant="default" size="default" className="" onClick={() => window.location.reload()}>
                 Thử lại
               </Button>
             </CardContent>
@@ -174,7 +183,7 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
               <p className="text-gray-600 mb-4">
                 Không có phòng nào phù hợp với yêu cầu của bạn trong thời gian này.
               </p>
-              <Button onClick={onBack}>
+              <Button variant="default" size="default" className="" onClick={onBack}>
                 Thử tìm kiếm khác
               </Button>
             </CardContent>
@@ -224,10 +233,6 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
                           </div>
                         </div>
 
-                        <p className="text-gray-700 mb-4 line-clamp-2">
-                          {room.description}
-                        </p>
-
                         {/* Amenities */}
                         <div className="mb-4">
                           <h4 className="font-medium text-gray-900 mb-2">Tiện nghi</h4>
@@ -247,35 +252,13 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
                         </div>
 
                         <Separator className="my-4" />
-
-                        {/* Pricing Summary */}
-                        <div className="space-y-2 mb-4">
-                          <div className="flex justify-between text-sm">
-                            <span>{nights} đêm × {room.price.toLocaleString('vi-VN')}₫</span>
-                            <span>{(room.price * nights).toLocaleString('vi-VN')}₫</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Phí dịch vụ</span>
-                            <span>200,000₫</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span>Thuế</span>
-                            <span>350,000₫</span>
-                          </div>
-                          <Separator />
-                          <div className="flex justify-between font-semibold">
-                            <span>Tổng cộng</span>
-                            <span className="text-primary">
-                              {(room.price * nights + 200000 + 350000).toLocaleString('vi-VN')}₫
-                            </span>
-                          </div>
-                        </div>
                       </div>
 
                       {/* Action Buttons */}
                       <div className="flex space-x-3">
                         <Button
                           variant="outline"
+                          size="default"
                           className="flex-1"
                           onClick={() => {
                             // Debug: log the room object to see its properties
@@ -292,12 +275,22 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
                           Xem chi tiết
                         </Button>
                         <Button
+                          variant="default"
+                          size="default"
                           className="flex-1"
                           onClick={() => {
                             // Use id or _id depending on which is available
                             const roomId = room.id || room._id;
                             if (roomId) {
-                              onBookRoom(roomId);
+                              // Pass search parameters through router state
+                              navigate(`/user/booking/${roomId}`, {
+                                state: {
+                                  checkIn: searchParams.checkIn,
+                                  checkOut: searchParams.checkOut,
+                                  adults: searchParams.adults,
+                                  children: searchParams.children
+                                }
+                              });
                             } else {
                               console.error('Room ID is missing:', room);
                             }

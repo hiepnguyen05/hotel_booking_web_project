@@ -12,6 +12,8 @@ import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { roomService, Room } from "../../services/roomService";
 import { bookingService } from "../../services/bookingService";
 import { useAuthStore } from "../../store/authStore";
+import { useLocation, useNavigate } from "react-router-dom";
+import { MoMoPayment } from './MoMoPayment';
 
 interface BookingPageProps {
   roomId: string;
@@ -21,23 +23,36 @@ interface BookingPageProps {
 }
 
 export function BookingPage({ roomId, user, onBack, onBookingComplete }: BookingPageProps) {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
-  const [room, setRoom] = useState<Room | null>(null);
+  const location = useLocation();
+  
+  const [room, setRoom] = useState(null);
   const [roomLoading, setRoomLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [showMoMoPayment, setShowMoMoPayment] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState(null);
   
+  // Get search parameters from router state if available, otherwise use defaults
+  const searchParams = location.state as { 
+    checkIn?: string; 
+    checkOut?: string; 
+    adults?: number; 
+    children?: number 
+  } || {};
+
   const [bookingData, setBookingData] = useState({
-    checkIn: new Date().toISOString().split('T')[0],
-    checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
-    adults: 2,
-    children: 0,
+    checkIn: searchParams.checkIn || new Date().toISOString().split('T')[0],
+    checkOut: searchParams.checkOut || new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
+    adults: searchParams.adults || 2,
+    children: searchParams.children || 0,
     roomCount: 1,
     fullName: currentUser?.username || '',
     email: currentUser?.email || '',
     phone: '',
     notes: "",
-    paymentMethod: "direct"
+    paymentMethod: "online" // Chỉ giữ lại phương thức thanh toán trực tuyến
   });
 
   // Load room data
@@ -46,7 +61,7 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
       setRoomLoading(true);
       try {
         console.log('Loading room with ID:', roomId);
-        const roomData = await roomService.getRoomById(roomId);
+        const roomData: any = await roomService.getRoomById(roomId);
         console.log('Loaded room data:', roomData);
         setRoom(roomData);
       } catch (error) {
@@ -77,7 +92,7 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Không tìm thấy phòng</h2>
-          <Button onClick={onBack}>Quay lại</Button>
+          <Button variant="default" size="default" className="" onClick={onBack}>Quay lại</Button>
         </div>
       </div>
     );
@@ -93,7 +108,7 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
   const nights = calculateNights();
   const serviceFee = 200000;
   const tax = 350000;
-  const subtotal = room.price * nights * bookingData.roomCount;
+  const subtotal = (room as any).price * nights * bookingData.roomCount;
   const total = subtotal + serviceFee + tax;
 
   const handleInputChange = (field: string, value: string | number) => {
@@ -126,17 +141,11 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
         return;
       }
 
-      if (!bookingData.paymentMethod) {
-        alert('Vui lòng chọn phương thức thanh toán');
-        setIsLoading(false);
-        return;
-      }
-
       // Debug: log room object
       console.log('Room object:', room);
       
       // Ensure we have a valid room ID
-      const validRoomId = room?.id || room?._id;
+      const validRoomId = (room as any)?.id || (room as any)?._id;
       if (!validRoomId) {
         throw new Error('Không tìm thấy ID phòng hợp lệ');
       }
@@ -163,15 +172,30 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
       
       console.log('Booking payload:', bookingPayload);
 
-      const booking = await bookingService.createBooking(bookingPayload);
+      const booking: any = await bookingService.createBooking(bookingPayload);
       
       if (booking) {
-        onBookingComplete({
-          ...booking,
-          roomName: room.name,
-          nights: nights,
-          total: total
-        });
+        // Nếu là thanh toán trực tuyến, chuyển đến trang thanh toán MoMo
+        if (bookingData.paymentMethod === 'online') {
+          // Chuyển hướng đến trang thanh toán MoMo
+          navigate('/user/payment/momo', { 
+            state: { 
+              booking: {
+                ...booking,
+                roomName: (room as any).name,
+                nights: nights,
+                total: total
+              }
+            } 
+          });
+        } else {
+          onBookingComplete({
+            ...booking,
+            roomName: (room as any).name,
+            nights: nights,
+            total: total
+          });
+        }
       } else {
         throw new Error('Không thể tạo đặt phòng');
       }
@@ -209,6 +233,7 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
         <div className="max-w-4xl mx-auto px-4 py-4">
           <Button
             variant="ghost"
+            size="default"
             onClick={onBack}
             className="mb-2"
           >
@@ -398,39 +423,13 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
                   <div className="space-y-6">
                     <h3 className="text-xl font-semibold">Phương thức thanh toán</h3>
                     <div className="space-y-4">
-                      <div 
-                        className={`border rounded-lg p-4 cursor-pointer ${
-                          bookingData.paymentMethod === 'direct' 
-                            ? 'border-primary bg-primary/5' 
-                            : 'border-gray-200'
-                        }`}
-                        onClick={() => handleInputChange('paymentMethod', 'direct')}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                            bookingData.paymentMethod === 'direct' 
-                              ? 'border-primary bg-primary' 
-                              : 'border-gray-300'
-                          }`}>
-                            {bookingData.paymentMethod === 'direct' && (
-                              <div className="w-2 h-2 rounded-full bg-white"></div>
-                            )}
-                          </div>
-                          <CreditCard className="h-5 w-5 text-gray-600" />
-                          <div>
-                            <p className="font-medium">Thanh toán tại khách sạn</p>
-                            <p className="text-sm text-gray-600">Thanh toán khi nhận phòng</p>
-                          </div>
-                        </div>
-                      </div>
-                      
+                      {/* Loại bỏ phương thức thanh toán trực tiếp, chỉ giữ lại thanh toán trực tuyến */}
                       <div 
                         className={`border rounded-lg p-4 cursor-pointer ${
                           bookingData.paymentMethod === 'online' 
                             ? 'border-primary bg-primary/5' 
                             : 'border-gray-200'
                         }`}
-                        onClick={() => handleInputChange('paymentMethod', 'online')}
                       >
                         <div className="flex items-center space-x-3">
                           <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
@@ -450,44 +449,6 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
                         </div>
                       </div>
                     </div>
-                    
-                    {bookingData.paymentMethod === 'online' && (
-                      <div className="border rounded-lg p-4 bg-gray-50">
-                        <h4 className="font-medium mb-3">Thông tin thẻ</h4>
-                        <div className="space-y-3">
-                          <div className="space-y-2">
-                            <Label htmlFor="cardNumber">Số thẻ</Label>
-                            <Input
-                              id="cardNumber"
-                              placeholder="1234 5678 9012 3456"
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-2">
-                              <Label htmlFor="cardExpiry">Ngày hết hạn</Label>
-                              <Input
-                                id="cardExpiry"
-                                placeholder="MM/YY"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="cardCvv">CVV</Label>
-                              <Input
-                                id="cardCvv"
-                                placeholder="123"
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="cardName">Tên chủ thẻ</Label>
-                            <Input
-                              id="cardName"
-                              placeholder="NGUYEN VAN A"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </CardContent>
@@ -504,17 +465,25 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex space-x-3">
-                    {room.images && room.images.length > 0 && (
+                    {(room as any).images && (room as any).images.length > 0 && (
                       <div className="w-16 h-16 rounded-lg overflow-hidden">
                         <ImageWithFallback
-                          src={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${room.images[0]}`}
-                          alt={room.name}
+                          src={
+                            (room as any).images && (room as any).images.length > 0
+                              ? (room as any).images[0].startsWith('http')
+                                ? (room as any).images[0]
+                                : (room as any).images[0].startsWith('/uploads')
+                                ? `http://localhost:5000${(room as any).images[0]}`
+                                : `http://localhost:5000${(room as any).images[0].startsWith('/') ? (room as any).images[0] : `/${(room as any).images[0]}`}`
+                              : 'https://placehold.co/300x200?text=No+Image'
+                          }
+                          alt={(room as any).name}
                           className="w-full h-full object-cover"
                         />
                       </div>
                     )}
                     <div>
-                      <h4 className="font-medium">{room.name}</h4>
+                      <h4 className="font-medium">{(room as any).name}</h4>
                       <p className="text-sm text-gray-600">
                         {new Date(bookingData.checkIn).toLocaleDateString('vi-VN')} - {new Date(bookingData.checkOut).toLocaleDateString('vi-VN')}
                       </p>
@@ -525,7 +494,7 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
                   
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span>{room.price.toLocaleString('vi-VN')}₫ × {nights} đêm × {bookingData.roomCount} phòng</span>
+                      <span>{(room as any).price.toLocaleString('vi-VN')}₫ × {nights} đêm × {bookingData.roomCount} phòng</span>
                       <span>{subtotal.toLocaleString('vi-VN')}₫</span>
                     </div>
                     <div className="flex justify-between">
@@ -551,6 +520,7 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
               <div className="flex space-x-3">
                 <Button 
                   variant="outline" 
+                  size="default"
                   onClick={handlePrevStep} 
                   disabled={currentStep === 1}
                   className="flex-1"
@@ -559,6 +529,8 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
                 </Button>
                 {currentStep < 3 ? (
                   <Button 
+                    variant="default"
+                    size="default"
                     onClick={handleNextStep} 
                     className="flex-1"
                     disabled={
@@ -570,6 +542,8 @@ export function BookingPage({ roomId, user, onBack, onBookingComplete }: Booking
                   </Button>
                 ) : (
                   <Button 
+                    variant="default"
+                    size="default"
                     onClick={handleCompleteBooking} 
                     className="flex-1"
                     disabled={isLoading}

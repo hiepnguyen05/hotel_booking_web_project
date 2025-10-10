@@ -80,7 +80,6 @@ class AuthService {
           const newPayload = JSON.parse(atob(newToken.split('.')[1]));
           // Validate required fields from refreshed token
           if (!newPayload.id || !newPayload.username || !newPayload.email) {
-            console.error('Invalid refreshed token payload - missing required fields');
             apiClient.setToken(null);
             return null;
           }
@@ -96,7 +95,6 @@ class AuthService {
         
         // Validate required fields from token
         if (!payload.id || !payload.username || !payload.email) {
-          console.error('Invalid token payload - missing required fields');
           apiClient.setToken(null);
           return null;
         }
@@ -109,12 +107,10 @@ class AuthService {
           isLocked: false
         };
       } catch (decodeError) {
-        console.error('Token decode error:', decodeError);
         apiClient.setToken(null);
         return null;
       }
     } catch (error) {
-      console.error('Get current user error:', error);
       apiClient.setToken(null);
       return null;
     }
@@ -134,7 +130,6 @@ class AuthService {
       
       return null;
     } catch (error) {
-      console.error('Refresh token error:', error);
       apiClient.setToken(null);
       localStorage.removeItem('refreshToken');
       return null;

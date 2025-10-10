@@ -25,6 +25,10 @@ import {
 } from 'lucide-react';
 import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { getRoomImageUrl } from '../../utils/imageUtils';
+
+// Get the API base URL from environment variables or use default
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000';
 
 export function UserAccount() {
   const navigate = useNavigate();
@@ -109,7 +113,7 @@ export function UserAccount() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Vui lòng đăng nhập</h2>
-          <Button onClick={() => navigate('/login')}>Đăng nhập</Button>
+          <Button variant="default" size="default" className="" onClick={() => navigate('/login')}>Đăng nhập</Button>
         </div>
       </div>
     );
@@ -136,8 +140,9 @@ export function UserAccount() {
             </div>
             <Button
               variant="outline"
-              onClick={handleLogout}
+              size="default"
               className="text-red-600 border-red-600 hover:bg-red-50"
+              onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-2" />
               Đăng xuất
@@ -178,6 +183,8 @@ export function UserAccount() {
                   </div>
                   <Button
                     variant="outline"
+                    size="default"
+                    className=""
                     onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
                   >
                     {isEditing ? (
@@ -282,11 +289,11 @@ export function UserAccount() {
                           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                             {/* Room Info */}
                             <div className="flex gap-4">
-                              {booking.room?.images && booking.room.images.length > 0 ? (
+                              {booking.room && typeof booking.room !== 'string' && (booking.room as any).images && Array.isArray((booking.room as any).images) && (booking.room as any).images.length > 0 ? (
                                 <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                                   <ImageWithFallback
-                                    src={`http://localhost:5000${booking.room.images[0]}`}
-                                    alt={booking.room.name}
+                                    src={getRoomImageUrl((booking.room as any).images[0])}
+                                    alt={typeof booking.room !== 'string' ? (booking.room as any).name : 'Room'}
                                     className="w-full h-full object-cover"
                                   />
                                 </div>
@@ -298,7 +305,7 @@ export function UserAccount() {
                             
                               <div>
                                 <h3 className="font-semibold text-lg">
-                                  {booking.room?.name || `Phòng ${booking.roomId}`}
+                                  {typeof booking.room !== 'string' ? (booking.room as any).name : `Phòng ${booking.room}`}
                                 </h3>
                                 <p className="text-sm text-gray-500">
                                   Mã đặt phòng: {booking.id}
@@ -308,7 +315,7 @@ export function UserAccount() {
                                 </p>
                               </div>
                             </div>
-                            
+
                             {/* Status Badges */}
                             <div className="flex flex-wrap gap-2">
                               {getStatusBadge(booking.status)}
@@ -323,7 +330,7 @@ export function UserAccount() {
                               <Calendar className="h-4 w-4 text-gray-500" />
                               <div>
                                 <p className="text-xs text-gray-500">Check-in</p>
-                                <p className="text-sm font-medium">{formatDate(booking.checkIn)}</p>
+                                <p className="text-sm font-medium">{formatDate(booking.checkInDate)}</p>
                               </div>
                             </div>
                             
@@ -331,7 +338,7 @@ export function UserAccount() {
                               <Calendar className="h-4 w-4 text-gray-500" />
                               <div>
                                 <p className="text-xs text-gray-500">Check-out</p>
-                                <p className="text-sm font-medium">{formatDate(booking.checkOut)}</p>
+                                <p className="text-sm font-medium">{formatDate(booking.checkOutDate)}</p>
                               </div>
                             </div>
                             
@@ -339,7 +346,7 @@ export function UserAccount() {
                               <Users className="h-4 w-4 text-gray-500" />
                               <div>
                                 <p className="text-xs text-gray-500">Số khách</p>
-                                <p className="text-sm font-medium">{booking.adults + booking.children}</p>
+                                <p className="text-sm font-medium">{booking.adultCount + booking.childCount}</p>
                               </div>
                             </div>
                             
@@ -347,7 +354,7 @@ export function UserAccount() {
                               <Clock className="h-4 w-4 text-gray-500" />
                               <div>
                                 <p className="text-xs text-gray-500">Số đêm</p>
-                                <p className="text-sm font-medium">{booking.nights}</p>
+                                <p className="text-sm font-medium">{Math.ceil((new Date(booking.checkOutDate).getTime() - new Date(booking.checkInDate).getTime()) / (1000 * 60 * 60 * 24))}</p>
                               </div>
                             </div>
                           </div>
@@ -363,7 +370,7 @@ export function UserAccount() {
                             <div className="flex items-center gap-2">
                               <CreditCard className="h-4 w-4 text-gray-500" />
                               <span className="text-lg font-bold text-primary">
-                                {formatCurrency(booking.totalAmount)}
+                                {formatCurrency(booking.totalPrice)}
                               </span>
                             </div>
                             
@@ -371,6 +378,7 @@ export function UserAccount() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className=""
                                 onClick={() => navigate(`/user/booking/${booking.id}/details`)}
                               >
                                 Xem chi tiết
@@ -380,8 +388,8 @@ export function UserAccount() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleCancelBooking(booking.id)}
                                   className="text-red-600 border-red-600 hover:bg-red-50"
+                                  onClick={() => handleCancelBooking(booking.id)}
                                 >
                                   Hủy đặt phòng
                                 </Button>
@@ -389,8 +397,10 @@ export function UserAccount() {
                               
                               {booking.status === 'confirmed' && booking.paymentStatus === 'paid' && (
                                 <Button
+                                  variant="default"
                                   size="sm"
-                                  onClick={() => navigate(`/rooms/${booking.roomId}`)}
+                                  className=""
+                                  onClick={() => navigate(`/rooms/${typeof booking.room !== 'string' ? booking.room._id : booking.room}`)}
                                 >
                                   Đặt lại
                                 </Button>
@@ -408,7 +418,7 @@ export function UserAccount() {
                     <p className="text-gray-600 mb-4">
                       Bạn chưa có đặt phòng nào. Hãy khám phá các phòng đẹp của chúng tôi!
                     </p>
-                    <Button onClick={() => navigate('/rooms')}>
+                    <Button variant="default" size="default" className="" onClick={() => navigate('/rooms')}>
                       Khám phá phòng
                     </Button>
                   </div>
@@ -436,7 +446,7 @@ export function UserAccount() {
                       <h3 className="font-medium">Thông báo email</h3>
                       <p className="text-sm text-gray-500">Nhận thông báo về đặt phòng qua email</p>
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="">
                       Bật
                     </Button>
                   </div>
@@ -446,7 +456,7 @@ export function UserAccount() {
                       <h3 className="font-medium">Đổi mật khẩu</h3>
                       <p className="text-sm text-gray-500">Cập nhật mật khẩu để bảo mật tài khoản</p>
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="">
                       Đổi mật khẩu
                     </Button>
                   </div>

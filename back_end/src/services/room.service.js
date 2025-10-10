@@ -13,7 +13,7 @@ class RoomService {
             sort = "-createdAt",
         } = query;
 
-        const filter = {};
+        const filter = { status: "available" }; // Chỉ lấy các phòng có trạng thái "available"
         if (minPrice || maxPrice) {
             filter.price = {};
             if (minPrice) filter.price.$gte = Number(minPrice);
@@ -50,7 +50,7 @@ class RoomService {
     }
 
     async getById(roomId) {
-        return await Room.findById(roomId);
+        return await Room.findOne({ _id: roomId, status: "available" });
     }
 
     async createRoom(roomData) {
@@ -67,7 +67,8 @@ class RoomService {
     }
 
     async searchAvailableRooms(checkInDate, checkOutDate, adultCount, childCount, roomCount) {
-        console.log('Backend searching rooms with params:', {
+        console.log('=== DEBUG ROOM SEARCH ===');
+        console.log('Input parameters:', {
             checkInDate,
             checkOutDate,
             adultCount,
@@ -75,30 +76,75 @@ class RoomService {
             roomCount
         });
 
-        const totalGuests = adultCount + childCount;
+        // Ensure dates are Date objects and handle timezone properly
+        let checkIn, checkOut;
+        
+        // If dates are strings without time components, treat them as date-only (no timezone conversion)
+        if (typeof checkInDate === 'string' && checkInDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Date-only string like '2025-10-08' - parse as date in local timezone
+            const [year, month, day] = checkInDate.split('-').map(Number);
+            checkIn = new Date(year, month - 1, day); // Month is 0-indexed
+        } else {
+            // Full date string or Date object
+            checkIn = new Date(checkInDate);
+        }
+        
+        if (typeof checkOutDate === 'string' && checkOutDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Date-only string like '2025-10-09' - parse as date in local timezone
+            const [year, month, day] = checkOutDate.split('-').map(Number);
+            checkOut = new Date(year, month - 1, day); // Month is 0-indexed
+        } else {
+            // Full date string or Date object
+            checkOut = new Date(checkOutDate);
+        }
 
-        // Tìm các phòng có status: "available" và đủ sức chứa
+        console.log('Processed dates:', { checkIn, checkOut });
+
+        const totalGuests = adultCount + childCount;
+        console.log('Total guests:', totalGuests);
+
+        // Tìm các phòng có đủ sức chứa và có trạng thái "available"
         const availableRooms = await Room.find({
-            status: "available",
             capacity: { $gte: totalGuests },
+            status: "available"
         });
 
         console.log(`Found ${availableRooms.length} rooms with sufficient capacity`);
+        console.log('Available rooms before filtering:', availableRooms.map(r => ({ 
+            id: r._id, 
+            name: r.name, 
+            status: r.status,
+            capacity: r.capacity
+        })));
 
         // Lấy danh sách phòng đã được đặt trong khoảng thời gian
+        console.log('Calling BookingService.checkAvailabilityForRooms...');
         const bookedRoomIds = await BookingService.checkAvailabilityForRooms(
-            checkInDate,
-            checkOutDate
+            checkIn,
+            checkOut
         );
 
         console.log(`Found ${bookedRoomIds.length} booked room IDs:`, bookedRoomIds);
 
         // Lọc các phòng không nằm trong danh sách đã đặt
-        const rooms = availableRooms
-            .filter((room) => !bookedRoomIds.includes(room._id.toString()))
-            .slice(0, roomCount); // Giới hạn số lượng phòng theo roomCount
+        const filteredRooms = availableRooms.filter((room) => {
+            const isBooked = bookedRoomIds.includes(room._id.toString());
+            console.log(`Room ${room._id} (${room.name}) is booked: ${isBooked}`);
+            // Trả về các phòng KHÔNG được đặt (isBooked phải là false)
+            return !isBooked;
+        });
+        
+        console.log(`After filtering, ${filteredRooms.length} rooms remain`);
 
-        console.log(`Returning ${rooms.length} available rooms`);
+        // Giới hạn số lượng phòng theo roomCount
+        const rooms = filteredRooms.slice(0, roomCount);
+
+        console.log(`Returning ${rooms.length} available rooms:`, rooms.map(r => ({ 
+            id: r._id, 
+            name: r.name 
+        })));
+        console.log('=== END DEBUG ROOM SEARCH ===');
+        
         return rooms;
     }
 }

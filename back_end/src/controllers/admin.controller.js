@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const User = require("../models/user.model");
 const Booking = require("../models/booking.model");
+const CancellationRequest = require("../models/cancellationRequest.model");
 
 // Lấy danh sách tất cả user
 const getAllUsers = async (req, res) => {
@@ -147,8 +148,23 @@ const getAllBookings = async (req, res) => {
             Booking.countDocuments(filter),
         ]);
 
+        // Get cancellation requests for these bookings
+        const bookingIds = items.map(item => item._id);
+        const cancellationRequests = await CancellationRequest.find({
+            booking: { $in: bookingIds }
+        }).select('booking status refundStatus');
+
+        // Add cancellation request info to bookings
+        const itemsWithCancellationInfo = items.map(item => {
+            const cancellationRequest = cancellationRequests.find(cr => cr.booking.toString() === item._id.toString());
+            return {
+                ...item.toObject(),
+                cancellationRequest: cancellationRequest || null
+            };
+        });
+
         return res.json({
-            items,
+            items: itemsWithCancellationInfo,
             pagination: {
                 page: Number(page),
                 limit: Number(limit),
@@ -191,6 +207,109 @@ const updateBookingStatus = async (req, res) => {
     }
 };
 
+// Lấy thống kê đặt phòng (admin)
+const getBookingStats = async (req, res) => {
+    try {
+        // Tổng số đặt phòng
+        const totalBookings = await Booking.countDocuments();
+        
+        // Số đặt phòng theo trạng thái
+        const statusStats = await Booking.aggregate([
+            {
+                $group: {
+                    _id: "$status",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+        
+        // Chuyển đổi kết quả thành object
+        const statusCounts = statusStats.reduce((acc, stat) => {
+            acc[stat._id] = stat.count;
+            return acc;
+        }, {});
+        
+        // Tổng doanh thu từ các booking đã thanh toán
+        const paidBookings = await Booking.find({ 
+            status: { $in: ['confirmed', 'completed'] },
+            paymentStatus: 'paid'
+        });
+        
+        const totalRevenue = paidBookings.reduce((sum, booking) => sum + (booking.totalPrice || 0), 0);
+        
+        // Doanh thu theo tháng
+        const monthlyRevenue = await Booking.aggregate([
+            {
+                $match: {
+                    status: { $in: ['confirmed', 'completed'] },
+                    paymentStatus: 'paid'
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: "$createdAt" },
+                        month: { $month: "$createdAt" }
+                    },
+                    revenue: { $sum: "$totalPrice" },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { "_id.year": -1, "_id.month": -1 }
+            },
+            {
+                $limit: 12
+            }
+        ]);
+        
+        return res.json({
+            totalBookings,
+            confirmedBookings: statusCounts.confirmed || 0,
+            pendingBookings: statusCounts.pending || 0,
+            cancelledBookings: statusCounts.cancelled || 0,
+            completedBookings: statusCounts.completed || 0,
+            totalRevenue,
+            monthlyRevenue
+        });
+    } catch (err) {
+        console.error('Get booking stats error:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Xử lý thanh toán booking (admin)
+const processBookingPayment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { paymentMethod } = req.body;
+        
+        const booking = await Booking.findById(id);
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        // Cập nhật trạng thái thanh toán
+        booking.paymentStatus = 'paid';
+        
+        // Nếu là thanh toán trực tiếp và booking đang ở trạng thái pending, 
+        // thì có thể tự động xác nhận
+        if (paymentMethod === 'direct' && booking.status === 'pending') {
+            booking.status = 'confirmed';
+        }
+
+        await booking.save();
+        
+        return res.json({
+            message: 'Payment processed successfully',
+            data: booking
+        });
+    } catch (err) {
+        console.error('Process booking payment error:', err);
+        return res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     getAllUsers,
     updateUserRole,
@@ -198,5 +317,7 @@ module.exports = {
     lockUser,
     unlockUser,
     getAllBookings,
-    updateBookingStatus
+    updateBookingStatus,
+    getBookingStats,
+    processBookingPayment
 };

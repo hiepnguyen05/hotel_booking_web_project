@@ -13,8 +13,8 @@ export function RoomsPage() {
   const { rooms, isLoading, error, fetchRooms, setSearchParams, searchParams } = useRoomStore();
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [priceRange, setPriceRange] = useState<string>('all');
-  const [capacity, setCapacity] = useState<string>('all');
+  const [priceRange, setPriceRange] = useState('all');
+  const [capacity, setCapacity] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -66,7 +66,8 @@ export function RoomsPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Có lỗi xảy ra</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={() => fetchRooms()}>Thử lại</Button>
+          <Button variant="default" size="default" className="" onClick={() => fetchRooms()}>Thử lại</Button>
+
         </div>
       </div>
     );
@@ -98,12 +99,13 @@ export function RoomsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1"
               />
-              <Button onClick={handleSearch} className="px-6">
+              <Button variant="default" size="default" onClick={handleSearch} className="px-6">
                 <Search className="h-4 w-4 mr-2" />
                 Tìm kiếm
               </Button>
               <Button
                 variant="outline"
+                size="default"
                 onClick={() => setShowFilters(!showFilters)}
                 className="px-4"
               >
@@ -147,10 +149,7 @@ export function RoomsPage() {
                 </div>
 
                 <div className="flex items-end">
-                  <Button variant="outline" onClick={clearFilters} className="w-full">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Xóa bộ lọc
-                  </Button>
+                  <Button variant="outline" size="default" className="" onClick={clearFilters}>Xóa bộ lọc</Button>
                 </div>
               </div>
             )}
@@ -172,23 +171,30 @@ export function RoomsPage() {
           {rooms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {rooms.map((room) => (
-                <RoomCard
-                  key={room.id}
-                  id={room.id}
-                  name={room.name}
-                  price={room.price}
-                  image={room.images[0] || '/placeholder-room.jpg'}
-                  capacity={room.capacity}
-                  size={room.size}
-                  onViewRoom={handleViewRoom}
-                />
+                <div key={room._id}>
+                  <RoomCard
+                    room={{
+                      id: room._id,
+                      name: room.name,
+                      description: room.description,
+                      price: room.price,
+                      image: room.images[0] || '/placeholder-room.jpg',
+                      capacity: room.capacity,
+                      size: '30m²', // Mock data - you might want to add this to your backend
+                      amenities: room.amenities || [],
+                      bedType: room.type || 'Không xác định'
+                    }}
+                    onViewRoom={handleViewRoom}
+                  />
+                </div>
               ))}
+
             </div>
           ) : (
             <div className="text-center py-12">
               <h3 className="text-xl font-semibold mb-2">Không tìm thấy phòng nào</h3>
               <p className="text-gray-600 mb-4">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
-              <Button onClick={clearFilters}>Xóa bộ lọc</Button>
+              <Button variant="default" size="default" className="" onClick={clearFilters}>Xóa bộ lọc</Button>
             </div>
           )}
         </>
