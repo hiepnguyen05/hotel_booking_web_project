@@ -2,7 +2,7 @@
   "builds": [
     {
       "src": "front_end/package.json",
-      "use": "@vercel/static-build",
+      "use": "@vercel/node",
       "config": {
         "buildCommand": "cd front_end && npm install && npm run build",
         "outputDirectory": "front_end/build"

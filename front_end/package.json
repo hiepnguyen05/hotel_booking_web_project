@@ -61,13 +61,13 @@
   },
   "scripts": {
     "dev": "node scripts/showNetworkInfo.js && vite",
-    "build": "node build.js",
+    "build": "node vite-build.js",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
     "ngrok:frontend": "ngrok http 3000",
     "clean-install": "node scripts/clean-install.js",
-    "vercel-build": "node build.js"
+    "vercel-build": "node vite-build.js"
   },
   "browserslist": {
     "production": [
