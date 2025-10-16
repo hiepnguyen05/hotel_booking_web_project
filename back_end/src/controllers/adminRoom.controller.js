@@ -1,5 +1,7 @@
 const roomService = require("../services/room.service");
 const Room = require("../models/room.model");
+const fs = require("fs");
+const path = require("path");
 
 // Lấy danh sách phòng
 exports.list = async (req, res) => {
@@ -108,7 +110,20 @@ exports.update = async (req, res) => {
     try {
         let roomData = { ...req.body };
         
-        // Handle images
+        // Handle images to remove
+        let imagesToDelete = [];
+        if (req.body.imagesToRemove) {
+            try {
+                imagesToDelete = JSON.parse(req.body.imagesToRemove);
+                if (!Array.isArray(imagesToDelete)) {
+                    imagesToDelete = [];
+                }
+            } catch (e) {
+                imagesToDelete = [];
+            }
+        }
+        
+        // Handle new images
         if (req.files && req.files.length > 0) {
             const images = req.files.map((file) => `/uploads/rooms/${file.filename}`);
             roomData.images = images;
@@ -127,7 +142,25 @@ exports.update = async (req, res) => {
         if (req.body.price) roomData.price = Number(req.body.price);
         if (req.body.capacity) roomData.capacity = Number(req.body.capacity);
         
-        const room = await roomService.updateRoom(req.params.id, roomData);
+        const room = await roomService.updateRoom(req.params.id, roomData, imagesToDelete);
+        
+        // Delete image files from filesystem
+        if (imagesToDelete.length > 0) {
+            imagesToDelete.forEach(imagePath => {
+                // Only delete files that start with /uploads/rooms/
+                if (imagePath.startsWith('/uploads/rooms/')) {
+                    const fullPath = path.join(__dirname, '../../', imagePath);
+                    fs.unlink(fullPath, (err) => {
+                        if (err) {
+                            console.error('Error deleting file:', fullPath, err);
+                        } else {
+                            console.log('Successfully deleted file:', fullPath);
+                        }
+                    });
+                }
+            });
+        }
+        
         res.json({ success: true, data: room });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });

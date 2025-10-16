@@ -1,6 +1,6 @@
 import React from "react";
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { getRoomImageUrl } from '../../utils/imageUtils';
+import { getFullImageUrl } from '../../utils/imageUtils';
 import { useEffect, useRef } from 'react';
 
 interface Room {
@@ -21,7 +21,7 @@ interface RoomTypeCardProps {
 }
 
 export function RoomTypeCard({ room, index, onViewRoom }: RoomTypeCardProps) {
-  const cardRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -53,13 +53,13 @@ export function RoomTypeCard({ room, index, onViewRoom }: RoomTypeCardProps) {
     <div 
       ref={cardRef}
       className="flex flex-col md:flex-row gap-8 items-center opacity-0 translate-y-10 transition-all duration-700"
-      style={{ flexDirection: isOdd ? 'row-reverse' : 'row' } as React.CSSProperties}
+      style={{ flexDirection: isOdd ? 'row-reverse' : 'row' } as any}
     >
       {/* Image */}
       <div className="w-full md:w-1/2">
         <div className="relative overflow-hidden rounded-lg shadow-lg w-full" style={{ height: '300px' }}>
           <ImageWithFallback
-            src={getRoomImageUrl(room.image)}
+            src={getFullImageUrl(room.image)}
             alt={room.name}
             className="w-full h-full object-cover"
           />

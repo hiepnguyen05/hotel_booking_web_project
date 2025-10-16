@@ -1,125 +1,77 @@
-import { Card, CardContent } from "../ui/card";
-import { Badge } from "../ui/badge";
+import React from "react";
 import { Button } from "../ui/button";
-import { Users, Bed, Wifi, Car, Utensils, Waves, Wind } from "lucide-react";
+import { Bed, Users, Star } from "lucide-react";
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { getRoomImageUrl } from '../../utils/imageUtils';
+import { getFullImageUrl } from '../../utils/imageUtils';
 
-// Get the API base URL from environment variables or use default
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000';
+interface Room {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  capacity: number;
+  size?: string;
+  amenities?: string[];
+  bedType?: string;
+}
 
 interface RoomCardProps {
-  room: {
-    id: string;
-    name: string;
-    description: string;
-    size: string;
-    capacity: number;
-    price: number;
-    originalPrice?: number;
-    image: string;
-    amenities: string[];
-    discount?: number;
-    bedType: string;
-  };
+  room: Room;
   onViewRoom?: (roomId: string) => void;
 }
 
 export function RoomCard({ room, onViewRoom }: RoomCardProps) {
-  const getAmenityIcon = (amenity: string) => {
-    switch (amenity.toLowerCase()) {
-      case 'wifi':
-        return <Wifi className="h-4 w-4" />;
-      case 'parking':
-        return <Car className="h-4 w-4" />;
-      case 'restaurant':
-        return <Utensils className="h-4 w-4" />;
-      case 'ocean view':
-        return <Waves className="h-4 w-4" />;
-      case 'balcony':
-        return <Wind className="h-4 w-4" />;
-      default:
-        return null;
-    }
-  };
-
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="relative">
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+      {/* Image */}
+      <div className="relative h-48">
         <ImageWithFallback
-          src={getRoomImageUrl(room.image)}
+          src={getFullImageUrl(room.image)}
           alt={room.name}
-          className="w-full h-48 object-cover"
+          className="w-full h-full object-cover"
         />
-        {room.discount && (
-          <Badge className="absolute top-3 left-3 bg-red-500 hover:bg-red-600">
-            -{room.discount}%
-          </Badge>
-        )}
+        <div className="absolute top-2 right-2 bg-white px-2 py-1 rounded-md text-sm font-semibold text-primary">
+          {room.price.toLocaleString('vi-VN')}₫/đêm
+        </div>
       </div>
       
-      <CardContent className="p-6">
-        <div className="mb-4">
-          <h3 className="font-semibold text-xl mb-2">{room.name}</h3>
-          <p className="text-gray-600 text-sm mb-3">{room.description}</p>
-        </div>
+      {/* Content */}
+      <div className="p-4">
+        <h3 className="text-xl font-bold mb-2">{room.name}</h3>
+        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{room.description}</p>
         
-        <div className="grid grid-cols-2 gap-4 mb-4 text-sm text-gray-600">
+        {/* Features */}
+        <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
           <div className="flex items-center">
-            <Users className="h-4 w-4 mr-2" />
-            <span>Tối đa {room.capacity} khách</span>
+            <Bed className="h-4 w-4 mr-1" />
+            <span>{room.bedType || 'Phòng'}</span>
           </div>
           <div className="flex items-center">
-            <Bed className="h-4 w-4 mr-2" />
-            <span>{room.bedType}</span>
-          </div>
-          <div className="flex items-center col-span-2">
-            <span className="font-medium">Diện tích: {room.size}</span>
+            <Users className="h-4 w-4 mr-1" />
+            <span>{room.capacity} khách</span>
           </div>
         </div>
         
-        <div className="flex flex-wrap gap-2 mb-4">
-          {room.amenities.map((amenity, index) => (
-            <div key={index} className="flex items-center text-gray-500 bg-gray-100 px-2 py-1 rounded-md text-xs">
-              {getAmenityIcon(amenity)}
-              <span className="ml-1">{amenity}</span>
-            </div>
-          ))}
-        </div>
-        
+        {/* Rating */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-2xl font-bold text-primary">
-              {room.price.toLocaleString('vi-VN')}₫
-            </span>
-            {room.originalPrice && (
-              <span className="text-sm text-gray-500 line-through">
-                {room.originalPrice.toLocaleString('vi-VN')}₫
-              </span>
-            )}
-            <span className="text-sm text-gray-600">/đêm</span>
+          <div className="flex items-center">
+            <Star className="h-4 w-4 text-yellow-400 fill-current" />
+            <span className="ml-1 text-sm font-medium">4.8</span>
+            <span className="text-gray-400 text-sm ml-1">(124)</span>
           </div>
         </div>
         
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="default"
-            className="flex-1"
-            onClick={() => onViewRoom?.(room.id)}
-          >
-            Xem chi tiết
-          </Button>
-          <Button 
-            variant="default"
-            size="default"
-            className="flex-1"
-            onClick={() => onViewRoom?.(room.id)}
-          >
-            Đặt phòng ngay
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        {/* Button */}
+        <Button 
+          variant="default" 
+          size="default" 
+          className="w-full"
+          onClick={() => onViewRoom && onViewRoom(room.id)}
+        >
+          Xem chi tiết
+        </Button>
+      </div>
+    </div>
   );
 }

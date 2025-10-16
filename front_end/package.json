@@ -1,7 +1,10 @@
 {
-  "name": "Hotel Booking Website Design",
+  "name": "hotel-booking-website",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18.x"
+  },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.3",
@@ -54,7 +57,7 @@
     "@types/node": "^20.10.0",
     "@vitejs/plugin-react-swc": "^3.10.2",
     "typescript": "^5.9.3",
-    "vite": "6.3.5"
+    "vite": "^6.3.5"
   },
   "scripts": {
     "dev": "node scripts/showNetworkInfo.js && vite",
@@ -62,6 +65,19 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
-    "ngrok:frontend": "ngrok http 3000"
+    "ngrok:frontend": "ngrok http 3000",
+    "clean-install": "node scripts/clean-install.js"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }

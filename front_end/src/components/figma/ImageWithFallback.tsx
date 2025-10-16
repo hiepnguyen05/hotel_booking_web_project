@@ -20,12 +20,19 @@ export function ImageWithFallback({
 }: ImageWithFallbackProps) {
   const [didError, setDidError] = useState(false)
 
+  // Log image source for debugging
+  React.useEffect(() => {
+    console.log('ImageWithFallback received src:', src);
+  }, [src]);
+
   const handleError = () => {
+    console.log('Image failed to load:', src);
     setDidError(true)
   }
 
   // If src is empty or undefined, show error image
   if (!src) {
+    console.log('ImageWithFallback: No src provided, showing error image');
     return (
       <div
         className={`inline-block bg-gray-100 text-center align-middle ${className ?? ''}`}
@@ -48,6 +55,14 @@ export function ImageWithFallback({
       </div>
     </div>
   ) : (
-    <img src={src} alt={alt} className={className} style={style} {...rest} onError={handleError} />
+    <img 
+      src={src} 
+      alt={alt} 
+      className={className} 
+      style={style} 
+      {...rest} 
+      onError={handleError} 
+      onLoad={() => console.log('Image loaded successfully:', src)}
+    />
   )
 }

@@ -1,620 +1,357 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
-import { useBookingStore } from '../../store/bookingStore';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { Badge } from '../../components/ui/badge';
-import { Alert, AlertDescription } from '../../components/ui/alert';
-import {
-  ArrowLeft,
-  User,
-  Calendar,
-  Settings,
-  LogOut,
-  Edit3,
-  Save,
-  MapPin,
-  Users,
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { 
+  User, 
+  Calendar, 
+  CreditCard, 
+  Settings, 
+  Edit3, 
+  Eye, 
+  EyeOff,
+  CheckCircle,
   Clock,
-  CreditCard,
-  ImageIcon,
-  X
-} from 'lucide-react';
-import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
-import { formatCurrency, formatDate } from '../../utils/formatters';
-import { getRoomImageUrl } from '../../utils/imageUtils';
+  XCircle,
+  Star
+} from "lucide-react";
+import { useAuthStore } from '../../store/authStore';
 import { bookingService } from '../../services/bookingService';
-import { CustomCancellationDialog } from '../../features/booking/components';
+import { getFullImageUrl } from '../../utils/imageUtils';
 
-// Get the API base URL from environment variables or use default
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000';
+interface Booking {
+  _id: string;
+  id: string;
+  room: {
+    _id: string;
+    name: string;
+    images: string[];
+  };
+  checkInDate: string;
+  checkOutDate: string;
+  totalPrice: number;
+  status: string;
+  createdAt: string;
+}
+
+interface Review {
+  _id: string;
+  room: {
+    _id: string;
+    name: string;
+    images: string[];
+  };
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
 
 export function UserAccount() {
-  const navigate = useNavigate();
-  const { user, logout, isLoading } = useAuthStore();
-  const { userBookings, fetchUserBookings, cancelBooking } = useBookingStore();
-
-  const [activeTab, setActiveTab] = useState('profile');
-  const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState({
-    username: user?.username || '',
-    email: user?.email || '',
-    phone: '0901234567', // Mock data
-    address: '123 Đường ABC, Quận 1, TP.HCM' // Mock data
-  });
-  const [showCancellationModal, setShowCancellationModal] = useState(false);
-  const [selectedBookingId, setSelectedBookingId] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const loadBookings = useCallback(async () => {
-    try {
-      setLoading(true);
-      await fetchUserBookings();
-      setError(null);
-    } catch (err) {
-      console.error('Error loading bookings:', err);
-      setError('Không thể tải dữ liệu đặt phòng. Vui lòng thử lại sau.');
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchUserBookings]);
+  const { user, logout } = useAuthStore();
+  const [bookings, setBookings] = useState([] as Booking[]);
+  const [reviews, setReviews] = useState([] as Review[]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("bookings");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setProfileData({
-        username: user.username,
-        email: user.email,
-        phone: '0901234567',
-        address: '123 Đường ABC, Quận 1, TP.HCM'
-      });
-
-      loadBookings();
-    }
-  }, [user, loadBookings]);
-
-  const handleSaveProfile = () => {
-    // TODO: Implement profile update API call
-    setIsEditing(false);
-    alert('Cập nhật thông tin thành công!');
-  };
-
-  const handleLogout = async () => {
-    if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
-      await logout();
-      navigate('/');
-    }
-  };
-
-  const handleCancelBooking = async (bookingId: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn hủy đặt phòng này?')) {
-      const success = await cancelBooking(bookingId);
-      if (success) {
-        alert('Hủy đặt phòng thành công!');
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // Load bookings
+        const userBookings = await bookingService.getUserBookings();
+        setBookings(userBookings);
+        
+        // Load reviews - for now we'll set empty array since reviewService doesn't exist
+        setReviews([]);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        // Show error in console for now since toast doesn't exist
+      } finally {
+        setLoading(false);
       }
-    }
-  };
+    };
+
+    loadData();
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Đã xác nhận</Badge>;
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100 flex items-center gap-1">
+          <CheckCircle className="h-3 w-3" />
+          Đã xác nhận
+        </Badge>;
       case 'pending':
-        return <Badge variant="secondary">Chờ xác nhận</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          Chờ xử lý
+        </Badge>;
       case 'cancelled':
-        return <Badge variant="destructive">Đã hủy</Badge>;
-      case 'completed':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Hoàn thành</Badge>;
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100 flex items-center gap-1">
+          <XCircle className="h-3 w-3" />
+          Đã hủy
+        </Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge className="flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          {status}
+        </Badge>;
     }
   };
 
-  const getPaymentStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Đã thanh toán</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Chờ thanh toán</Badge>;
-      case 'failed':
-        return <Badge variant="destructive">Thanh toán thất bại</Badge>;
-      case 'refunded':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Đã hoàn tiền</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  const getRoomImage = (room: { images: string[] }) => {
+    if (room.images && room.images.length > 0) {
+      return getFullImageUrl(room.images[0]);
     }
-  };
-
-  // Helper function to get room image URL
-  const getBookingRoomImage = (room: any): string => {
-    // Check if room is a string (room ID) or null/undefined
-    if (!room || typeof room === 'string') {
-      return '';
-    }
-
-    // Check for image field (single image)
-    if (room.image) {
-      return getRoomImageUrl(room.image);
-    }
-
-    // Check for images array (multiple images)
-    if (room.images && Array.isArray(room.images) && room.images.length > 0) {
-      return getRoomImageUrl(room.images[0]);
-    }
-
-    // No image found
-    return '';
-  };
-
-  // Function to check if booking can be cancelled
-  const canCancelBooking = (booking: any) => {
-    // Only allow cancellation for confirmed bookings that are paid
-    if (booking.status !== 'confirmed' || booking.paymentStatus !== 'paid') {
-      return false;
-    }
-
-    // Check if there's already a cancellation request
-    if (booking.cancellationRequest) {
-      return false;
-    }
-
-    // Check if booking is within 24 hours of creation
-    const bookingCreated = new Date(booking.createdAt);
-    const now = new Date();
-    const hoursDiff = (now.getTime() - bookingCreated.getTime()) / (1000 * 60 * 60);
-
-    return hoursDiff <= 24;
+    return "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHhsdXh1cnklMjBob3RlbCUyMHJvb20lMjBpbnRlcmlvcnxlbnwxfHx8fDE3NTkyMjkwNjR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral";
   };
 
   if (!user) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Vui lòng đăng nhập</h2>
-          <Button variant="default" size="default" className="" onClick={() => navigate('/login')}>Đăng nhập</Button>
+          <p className="text-gray-600 mb-4">Bạn cần đăng nhập để xem thông tin tài khoản</p>
         </div>
       </div>
     );
   }
 
-  const handleCancellationRequested = () => {
-    // Refresh bookings after cancellation request
-    loadBookings();
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/')}
-              className="p-2"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Quay lại
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold">Tài khoản của tôi</h1>
-              <p className="text-gray-600">Quản lý thông tin cá nhân và đặt phòng</p>
-            </div>
-            <Button
-              variant="outline"
-              size="default"
-              className="text-red-600 border-red-600 hover:bg-red-50"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Đăng xuất
-            </Button>
-          </div>
+          <h1 className="text-3xl font-bold">Tài khoản của tôi</h1>
+          <p className="text-gray-600">Quản lý thông tin cá nhân và đặt phòng của bạn</p>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Hồ sơ
-            </TabsTrigger>
-            <TabsTrigger value="bookings" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Đặt phòng
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Cài đặt
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Profile Tab */}
-          <TabsContent value="profile">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Profile Sidebar */}
+          <div className="lg:col-span-1">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-3">
+                  <div className="bg-gray-200 rounded-full p-3">
+                    <User className="h-6 w-6 text-gray-600" />
+                  </div>
                   <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="h-5 w-5" />
-                      Thông tin cá nhân
-                    </CardTitle>
-                    <CardDescription>
-                      Quản lý thông tin tài khoản của bạn
-                    </CardDescription>
+                    <h2 className="text-xl font-semibold">{user.username}</h2>
+                    <p className="text-gray-600 text-sm">{user.email}</p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="default"
-                    className=""
-                    onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
-                  >
-                    {isEditing ? (
-                      <>
-                        <Save className="h-4 w-4 mr-2" />
-                        Lưu
-                      </>
-                    ) : (
-                      <>
-                        <Edit3 className="h-4 w-4 mr-2" />
-                        Chỉnh sửa
-                      </>
-                    )}
-                  </Button>
-                </div>
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Họ và tên</Label>
-                    <Input
-                      id="username"
-                      value={profileData.username}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, username: e.target.value }))}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profileData.email}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Số điện thoại</Label>
-                    <Input
-                      id="phone"
-                      value={profileData.phone}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Trạng thái tài khoản</Label>
-                    <div>
-                      <Badge variant="default" className="bg-green-100 text-green-800">
-                        Hoạt động
-                      </Badge>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Mật khẩu</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600">
+                        {showPassword ? '••••••••' : '********'}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className=""
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Địa chỉ</Label>
-                  <Input
-                    id="address"
-                    value={profileData.address}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
-                    disabled={!isEditing}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-                  <div>
-                    <Label className="text-sm text-gray-500">Ngày tham gia</Label>
-                    <p className="font-medium">01/01/2024</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-gray-500">Tổng đặt phòng</Label>
-                    <p className="font-medium">{userBookings.length} lần</p>
-                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="default"
+                    className="w-full"
+                    onClick={logout}
+                  >
+                    Đăng xuất
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
 
-          {/* Bookings Tab */}
-          <TabsContent value="bookings">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="bookings" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Đặt phòng
+                </TabsTrigger>
+                <TabsTrigger value="reviews" className="flex items-center gap-2">
+                  <Star className="h-4 w-4" />
+                  Đánh giá
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Cài đặt
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Bookings Tab */}
+              <TabsContent value="bookings" className="mt-6">
+                <Card>
+                  <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Calendar className="h-5 w-5" />
                       Lịch sử đặt phòng
                     </CardTitle>
-                    <CardDescription>
-                      Xem và quản lý các đặt phòng của bạn
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={loadBookings}
-                    disabled={loading}
-                    className=""
-                  >
+                  </CardHeader>
+                  <CardContent>
                     {loading ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2"></div>
-                        Đang tải...
+                      <div className="flex justify-center items-center h-32">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                      </div>
+                    ) : bookings.length > 0 ? (
+                      <div className="space-y-4">
+                        {bookings.map((booking) => (
+                          <div key={booking._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div className="flex gap-4">
+                              <img 
+                                src={getRoomImage(booking.room)} 
+                                alt={booking.room.name}
+                                className="w-24 h-24 object-cover rounded-lg"
+                              />
+                              <div className="flex-1">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <h3 className="font-semibold">{booking.room.name}</h3>
+                                    <p className="text-gray-600 text-sm">
+                                      {new Date(booking.checkInDate).toLocaleDateString('vi-VN')} - {new Date(booking.checkOutDate).toLocaleDateString('vi-VN')}
+                                    </p>
+                                    <p className="text-gray-900 font-semibold">{booking.totalPrice.toLocaleString('vi-VN')}₫</p>
+                                  </div>
+                                  {getStatusBadge(booking.status)}
+                                </div>
+                                <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>Đặt ngày {new Date(booking.createdAt).toLocaleDateString('vi-VN')}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ) : (
-                      'Làm mới'
+                      <div className="text-center py-8">
+                        <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">Chưa có đặt phòng nào</h3>
+                        <p className="text-gray-600">Bạn chưa thực hiện đặt phòng nào.</p>
+                      </div>
                     )}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                    <span className="ml-2">Đang tải dữ liệu...</span>
-                  </div>
-                ) : error ? (
-                  <div className="text-center py-8">
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                    <Button
-                      variant="default"
-                      size="default"
-                      className="mt-4"
-                      onClick={() => {
-                        setLoading(true);
-                        setError(null);
-                        loadBookings();
-                      }}
-                    >
-                      Thử lại
-                    </Button>
-                  </div>
-                ) : userBookings.length > 0 ? (
-                  <div className="space-y-4">
-                    {userBookings.map((booking) => (
-                      <div key={booking.id} className="border rounded-lg overflow-hidden">
-                        <div className="p-4 border-b">
-                          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                            {/* Room Info */}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Reviews Tab */}
+              <TabsContent value="reviews" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Star className="h-5 w-5" />
+                      Đánh giá của tôi
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <div className="flex justify-center items-center h-32">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                      </div>
+                    ) : reviews.length > 0 ? (
+                      <div className="space-y-4">
+                        {reviews.map((review) => (
+                          <div key={review._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                             <div className="flex gap-4">
-                              {booking.room && getBookingRoomImage(booking.room) ? (
-                                <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                                  <ImageWithFallback
-                                    src={getBookingRoomImage(booking.room)}
-                                    alt={typeof booking.room !== 'string' ? (booking.room as any).name : 'Room'}
-                                    className="w-full h-full object-cover"
-                                  />
+                              <img 
+                                src={getRoomImage(review.room)} 
+                                alt={review.room.name}
+                                className="w-24 h-24 object-cover rounded-lg"
+                              />
+                              <div className="flex-1">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <h3 className="font-semibold">{review.room.name}</h3>
+                                    <div className="flex items-center gap-1 mt-1">
+                                      {[...Array(5)].map((_, i) => (
+                                        <Star 
+                                          key={i} 
+                                          className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                                        />
+                                      ))}
+                                      <span className="text-sm text-gray-600 ml-1">({review.rating}/5)</span>
+                                    </div>
+                                    <p className="text-gray-700 mt-2">{review.comment}</p>
+                                  </div>
                                 </div>
-                              ) : (
-                                <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                  <ImageIcon className="h-6 w-6 text-gray-400" />
+                                <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>Đánh giá ngày {new Date(review.createdAt).toLocaleDateString('vi-VN')}</span>
                                 </div>
-                              )}
-
-                              <div>
-                                <h3 className="font-semibold text-lg">
-                                  {typeof booking.room !== 'string' ? (booking.room as any).name : `Phòng ${booking.room}`}
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                  Mã đặt phòng: {booking.id}
-                                </p>
-                                <p className="text-sm text-gray-500 mt-1">
-                                  Đặt ngày: {formatDate(booking.createdAt)}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Status Badges */}
-                            <div className="flex flex-wrap gap-2">
-                              {getStatusBadge(booking.status)}
-                              {getPaymentStatusBadge(booking.paymentStatus)}
-                              {booking.cancellationRequest && (
-                                <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
-                                  {booking.cancellationRequest.status === 'pending' ? 'Chờ duyệt hủy' :
-                                    booking.cancellationRequest.status === 'approved' ? 'Đã duyệt hủy' : 'Từ chối hủy'}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="p-4">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-gray-500" />
-                              <div>
-                                <p className="text-xs text-gray-500">Check-in</p>
-                                <p className="text-sm font-medium">{formatDate(booking.checkInDate)}</p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-gray-500" />
-                              <div>
-                                <p className="text-xs text-gray-500">Check-out</p>
-                                <p className="text-sm font-medium">{formatDate(booking.checkOutDate)}</p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-gray-500" />
-                              <div>
-                                <p className="text-xs text-gray-500">Số khách</p>
-                                <p className="text-sm font-medium">{booking.adultCount + booking.childCount}</p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-gray-500" />
-                              <div>
-                                <p className="text-xs text-gray-500">Số đêm</p>
-                                <p className="text-sm font-medium">{Math.ceil((new Date(booking.checkOutDate).getTime() - new Date(booking.checkInDate).getTime()) / (1000 * 60 * 60 * 24))}</p>
                               </div>
                             </div>
                           </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">Chưa có đánh giá nào</h3>
+                        <p className="text-gray-600">Bạn chưa đánh giá phòng nào.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-                          {booking.notes && (
-                            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                              <p className="text-sm text-gray-500 mb-1">Yêu cầu đặc biệt:</p>
-                              <p className="text-sm">{booking.notes}</p>
-                            </div>
-                          )}
-
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t">
-                            <div className="flex items-center gap-2">
-                              <CreditCard className="h-4 w-4 text-gray-500" />
-                              <span className="text-lg font-bold text-primary">
-                                {formatCurrency(booking.totalPrice)}
-                              </span>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className=""
-                                onClick={() => navigate(`/user/booking/${booking.id}/details`)}
-                              >
-                                Xem chi tiết
-                              </Button>
-
-                              {booking.status === 'pending' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-red-600 border-red-600 hover:bg-red-50"
-                                  onClick={() => handleCancelBooking(booking.id)}
-                                >
-                                  Hủy đặt phòng
-                                </Button>
-                              )}
-
-                              {canCancelBooking(booking) && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-orange-600 border-orange-600 hover:bg-orange-50"
-                                  onClick={() => {
-                                    // Show cancellation request modal
-                                    setSelectedBookingId(booking.id);
-                                    setShowCancellationModal(true);
-                                  }}
-                                >
-                                  Yêu cầu hủy
-                                </Button>
-                              )}
-
-                              {booking.status === 'confirmed' && booking.paymentStatus === 'paid' && (
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  className=""
-                                  onClick={() => navigate(`/rooms/${typeof booking.room !== 'string' ? (booking.room as any)._id : booking.room}`)}
-                                >
-                                  Đặt lại
-                                </Button>
-                              )}
-                            </div>
+              {/* Settings Tab */}
+              <TabsContent value="settings" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="h-5 w-5" />
+                      Cài đặt tài khoản
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Thông tin cá nhân</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Tên người dùng</label>
+                            <div className="p-3 bg-gray-50 rounded-md">{user.username}</div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2">Email</label>
+                            <div className="p-3 bg-gray-50 rounded-md">{user.email}</div>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Chưa có đặt phòng nào</h3>
-                    <p className="text-gray-600 mb-4">
-                      Bạn chưa có đặt phòng nào. Hãy khám phá các phòng đẹp của chúng tôi!
-                    </p>
-                    <Button variant="default" size="default" className="" onClick={() => navigate('/rooms')}>
-                      Khám phá phòng
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Cài đặt tài khoản
-                </CardTitle>
-                <CardDescription>
-                  Quản lý cài đặt và bảo mật tài khoản
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">Thông báo email</h3>
-                      <p className="text-sm text-gray-500">Nhận thông báo về đặt phòng qua email</p>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Bảo mật</h3>
+                        <Button variant="outline" size="default" className="" disabled>
+                          <Edit3 className="h-4 w-4 mr-2" />
+                          Thay đổi mật khẩu
+                        </Button>
+                      </div>
                     </div>
-                    <Button variant="outline" size="sm" className="">
-                      Bật
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">Đổi mật khẩu</h3>
-                      <p className="text-sm text-gray-500">Cập nhật mật khẩu để bảo mật tài khoản</p>
-                    </div>
-                    <Button variant="outline" size="sm" className="">
-                      Đổi mật khẩu
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">Xóa tài khoản</h3>
-                      <p className="text-sm text-gray-500">Xóa vĩnh viễn tài khoản và dữ liệu</p>
-                    </div>
-                    <Button variant="outline" size="sm" className="text-red-600 border-red-600 hover:bg-red-50">
-                      Xóa tài khoản
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
-
-      {/* Cancellation Request Dialog */}
-      <CustomCancellationDialog
-        bookingId={selectedBookingId}
-        open={showCancellationModal}
-        onOpenChange={setShowCancellationModal}
-        onCancellationRequested={handleCancellationRequested}
-      />
     </div>
   );
 }

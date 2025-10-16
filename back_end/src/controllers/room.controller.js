@@ -1,6 +1,8 @@
 const RoomService = require("../services/room.service");
 const BookingService = require("../services/booking.service");
 const { formatResponse } = require("../utils/formatResponse");
+const fs = require("fs");
+const path = require("path");
 
 class RoomController {
     async getAll(req, res) {
@@ -157,6 +159,7 @@ class RoomController {
                 price,
                 amenities,
                 status,
+                imagesToRemove,
             } = req.body;
 
             // Kiểm tra các trường nếu được cung cấp
@@ -209,14 +212,48 @@ class RoomController {
                 }
                 roomData.status = status;
             }
+            
+            // Xử lý ảnh mới được upload
             if (req.files && req.files.length > 0) {
-                roomData.images = req.files.map((file) => `/uploads/rooms/${file.filename}`);
+                const newImages = req.files.map((file) => `/uploads/rooms/${file.filename}`);
+                roomData.images = newImages;
+            }
+            
+            // Xử lý ảnh cần xóa
+            let imagesToDelete = [];
+            if (imagesToRemove) {
+                try {
+                    imagesToDelete = JSON.parse(imagesToRemove);
+                    if (!Array.isArray(imagesToDelete)) {
+                        imagesToDelete = [];
+                    }
+                } catch (error) {
+                    imagesToDelete = [];
+                }
             }
 
-            const room = await RoomService.updateRoom(id, roomData);
+            const room = await RoomService.updateRoom(id, roomData, imagesToDelete);
             if (!room) {
                 return formatResponse(res, 404, "Room not found");
             }
+            
+            // Xóa các file ảnh khỏi hệ thống file nếu có
+            if (imagesToDelete.length > 0) {
+                imagesToDelete.forEach(imagePath => {
+                    // Chỉ xóa file nếu đường dẫn bắt đầu với /uploads/rooms/
+                    if (imagePath.startsWith('/uploads/rooms/')) {
+                        const fullPath = path.join(__dirname, '../../', imagePath);
+                        fs.unlink(fullPath, (err) => {
+                            if (err) {
+                                console.error('Error deleting file:', fullPath, err);
+                            } else {
+                                console.log('Successfully deleted file:', fullPath);
+                            }
+                        });
+                    }
+                });
+            }
+            
             return formatResponse(res, 200, "Room updated successfully", room);
         } catch (error) {
             return formatResponse(res, 500, error.message);

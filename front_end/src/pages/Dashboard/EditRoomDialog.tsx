@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Badge } from "../../components/ui/badge";
 import { X, Upload, Plus } from "lucide-react";
 import { Room, UpdateRoomData, roomService } from "../../services/roomService";
+import { getFullImageUrl } from "../../utils/imageUtils";
 
 interface EditRoomDialogProps {
   open: boolean;
@@ -47,6 +48,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState([] as File[]);
   const [newAmenity, setNewAmenity] = useState('');
+  const [imagesToRemove, setImagesToRemove] = useState([] as string[]); // Track images to remove
   
   const [formData, setFormData] = useState({
     name: '',
@@ -74,6 +76,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
         status: room.status
       });
       setSelectedImages([]);
+      setImagesToRemove([]); // Reset images to remove
     }
   }, [room, open]);
 
@@ -88,6 +91,11 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
 
   const removeImage = (index: number) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Function to mark an existing image for removal
+  const markImageForRemoval = (imagePath: string) => {
+    setImagesToRemove(prev => [...prev, imagePath]);
   };
 
   const addAmenity = (amenity: string) => {
@@ -128,6 +136,11 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
         updateData.images = selectedImages;
       }
 
+      // Add images to remove if any
+      if (imagesToRemove.length > 0) {
+        (updateData as any).imagesToRemove = imagesToRemove;
+      }
+
       await roomService.updateRoom(updateData);
       
       onSuccess();
@@ -141,6 +154,9 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
   };
 
   if (!room) return null;
+
+  // Filter out images that are marked for removal
+  const currentImages = room.images?.filter(image => !imagesToRemove.includes(image)) || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -249,17 +265,25 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
             </div>
 
             {/* Current Images */}
-            {room.images && room.images.length > 0 && (
+            {currentImages && currentImages.length > 0 && (
               <div className="space-y-2">
                 <Label>Hình ảnh hiện tại</Label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {room.images.map((image, index) => (
+                  {currentImages.map((image, index) => (
                     <div key={index} className="relative">
                       <img
-                        src={`${'http://localhost:3000'}${image}`}
+                        src={getFullImageUrl(image)}
                         alt={`Room ${index + 1}`}
                         className="w-full h-20 object-cover rounded"
                       />
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                        onClick={() => markImageForRemoval(image)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </div>
                   ))}
                 </div>

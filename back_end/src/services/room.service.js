@@ -58,7 +58,31 @@ class RoomService {
         return await room.save();
     }
 
-    async updateRoom(roomId, updateData) {
+    async updateRoom(roomId, updateData, imagesToDelete = []) {
+        // Nếu có ảnh cần xóa, cập nhật mảng images
+        if (imagesToDelete.length > 0) {
+            // Lấy phòng hiện tại
+            const currentRoom = await Room.findById(roomId);
+            if (currentRoom) {
+                // Lọc bỏ các ảnh cần xóa
+                const updatedImages = currentRoom.images.filter(
+                    image => !imagesToDelete.includes(image)
+                );
+                
+                // Nếu có ảnh mới được thêm vào, kết hợp với ảnh còn lại
+                if (updateData.images && updateData.images.length > 0) {
+                    updateData.images = [...updatedImages, ...updateData.images];
+                } else {
+                    // Nếu không có ảnh mới, chỉ giữ lại ảnh còn lại
+                    updateData.images = updatedImages;
+                }
+            }
+        } else if (updateData.images) {
+            // Nếu không có ảnh cần xóa nhưng có ảnh mới, 
+            // chỉ cập nhật với ảnh mới (thay thế hoàn toàn)
+            // Đây là hành vi cũ, giữ nguyên để tương thích
+        }
+        
         return await Room.findByIdAndUpdate(roomId, updateData, { new: true });
     }
 

@@ -27,9 +27,7 @@ import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { useRoomStore } from "../../store/roomStore";
 import { roomService } from "../../services/roomService";
 import { useAuthStore } from "../../store/authStore";
-
-// Get the API base URL from environment variables or use default
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+import { getFullImageUrl } from "../../utils/imageUtils";
 
 interface Room {
   _id: string;
@@ -100,7 +98,10 @@ export function RoomDetailPage() {
     checkIn?: string; 
     checkOut?: string; 
     adults?: number; 
-    children?: number 
+    children?: number;
+    searchTerm?: string;
+    priceRange?: string;
+    capacity?: string;
   } || {};
   
   // Log received parameters for debugging
@@ -143,6 +144,8 @@ export function RoomDetailPage() {
         
         if (roomData) {
           setRoom(roomData);
+          // Reset selected image index when room changes
+          setSelectedImageIndex(0);
         } else {
           setError('Không tìm thấy phòng');
         }
@@ -274,36 +277,20 @@ export function RoomDetailPage() {
     return Wifi;
   };
 
-  // Get full image URL
-  const getFullImageUrl = (imagePath: string) => {
-    // If no image path, return placeholder
-    if (!imagePath) {
-      return 'https://images.unsplash.com/photo-1632598024410-3d8f24daab57?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHhsdXh1cnklMjBob3RlbCUyMHJvb20lMjBpbnRlcmlvcnxlbnwxfHx8fDE3NTkyMjkwNjR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
-    }
+  // Process images to handle duplicates appropriately
+  const processImages = (images: string[]): string[] => {
+    if (!images || images.length === 0) return [];
     
-    // If the image path is already a full URL, return it as is
-    if (imagePath.startsWith('http')) {
-      return imagePath;
-    }
+    // Remove duplicates while preserving order
+    const uniqueImages = [...new Set(images)];
     
-    // If it's a relative path that starts with /uploads, serve it from the base URL without /api
-    if (imagePath.startsWith('/uploads')) {
-      // Handle case where API_BASE_URL might end with /api or not
-      const baseUrlWithoutApi = API_BASE_URL.replace('/api', '');
-      // Remove trailing slash if exists and ensure no double slashes
-      const cleanBaseUrl = baseUrlWithoutApi.endsWith('/') ? baseUrlWithoutApi.slice(0, -1) : baseUrlWithoutApi;
-      // Ensure imagePath starts with /
-      const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-      return `${cleanBaseUrl}${cleanPath}`;
-    }
-    
-    // For other relative paths, prepend the API base URL
-    // Remove leading slash if it exists to avoid double slashes
-    const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
-    // Ensure API_BASE_URL doesn't end with a slash
-    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
-    return `${baseUrl}/${cleanPath}`;
+    // Return all unique images
+    return uniqueImages;
   };
+
+  const processedImages = processImages(room.images);
+  console.log('Original images:', room.images);
+  console.log('Processed images:', processedImages);
 
   // Calculate nights and total price
   const nights = calculateNights();
@@ -317,7 +304,33 @@ export function RoomDetailPage() {
           <Button
             variant="ghost"
             size="default"
-            onClick={() => navigate('/rooms')}
+            onClick={() => {
+              // Go back to the previous page with search parameters preserved
+              if (window.history.length > 1) {
+                // Check if we came from the rooms page with search params
+                if (searchParams.searchTerm || searchParams.priceRange || searchParams.capacity) {
+                  // Navigate back to rooms page with search parameters
+                  navigate('/rooms', { 
+                    state: {
+                      searchTerm: searchParams.searchTerm,
+                      priceRange: searchParams.priceRange,
+                      capacity: searchParams.capacity
+                    }
+                  });
+                } else {
+                  navigate(-1);
+                }
+              } else {
+                // Fallback to rooms page with search params if available
+                navigate('/rooms', { 
+                  state: searchParams.searchTerm || searchParams.priceRange || searchParams.capacity ? {
+                    searchTerm: searchParams.searchTerm,
+                    priceRange: searchParams.priceRange,
+                    capacity: searchParams.capacity
+                  } : undefined
+                });
+              }
+            }}
             className="mb-2"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -360,31 +373,38 @@ export function RoomDetailPage() {
               <CardContent className="p-0">
                 <div className="aspect-video relative">
                   <ImageWithFallback
-                    src={room.images && room.images.length > 0 
-                      ? getFullImageUrl(room.images[selectedImageIndex])
+                    src={processedImages && processedImages.length > 0 
+                      ? getFullImageUrl(processedImages[selectedImageIndex])
                       : "https://images.unsplash.com/photo-1632598024410-3d8f24daab57?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHhsdXh1cnklMjBob3RlbCUyMHJvb20lMjBpbnRlcmlvcnxlbnwxfHx8fDE3NTkyMjkwNjR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"}
                     alt={room.name}
                     className="w-full h-full object-cover rounded-t-lg"
                   />
                 </div>
-                {room.images && room.images.length > 1 && (
+                {processedImages && processedImages.length > 1 && (
                   <div className="p-4">
                     <div className="grid grid-cols-4 gap-2">
-                      {room.images.map((image: string, index: number) => (
-                        <button
-                          key={index}
-                          onClick={() => setSelectedImageIndex(index)}
-                          className={`aspect-video rounded-lg overflow-hidden border-2 ${
-                            selectedImageIndex === index ? 'border-primary' : 'border-gray-200'
-                          }`}
-                        >
-                          <ImageWithFallback
-                            src={getFullImageUrl(image)}
-                            alt={`${room.name} ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      ))}
+                      {processedImages.map((image: string, index: number) => {
+                        // Log each image for debugging
+                        console.log(`Image ${index}:`, image);
+                        const fullImageUrl = getFullImageUrl(image);
+                        console.log(`Full URL for image ${index}:`, fullImageUrl);
+                        
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => setSelectedImageIndex(index)}
+                            className={`aspect-video rounded-lg overflow-hidden border-2 ${
+                              selectedImageIndex === index ? 'border-primary' : 'border-gray-200'
+                            }`}
+                          >
+                            <ImageWithFallback
+                              src={fullImageUrl}
+                              alt={`${room.name} ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

@@ -65,6 +65,7 @@ export interface UpdateRoomData {
   status: string;
   amenities: string[];
   images?: File[];
+  imagesToRemove?: string[]; // Add this field
 }
 
 class RoomService {
@@ -254,7 +255,8 @@ class RoomService {
       
       // Add text fields
       Object.entries(roomData).forEach(([key, value]) => {
-        if (key !== 'images' && key !== 'id') {
+        // Skip id, images, and imagesToRemove fields as they need special handling
+        if (key !== 'images' && key !== 'id' && key !== 'imagesToRemove') {
           if (key === 'amenities') {
             // Convert amenities array to JSON string
             formData.append(key, JSON.stringify(value));
@@ -271,7 +273,12 @@ class RoomService {
         });
       }
       
-      const response = await apiClient.upload<{ success: boolean; data: Room }>(`/admin/rooms/${roomData.id}`, formData);
+      // Add images to remove
+      if (roomData.imagesToRemove) {
+        formData.append('imagesToRemove', JSON.stringify(roomData.imagesToRemove));
+      }
+      
+      const response = await apiClient.upload<{ success: boolean; data: Room }>(`/admin/rooms/${roomData.id}`, formData, 'PUT');
       return response.success ? response.data : null;
     } catch (error) {
       console.error('Update room error:', error);

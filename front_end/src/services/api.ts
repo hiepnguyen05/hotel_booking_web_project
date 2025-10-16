@@ -96,11 +96,11 @@ class ApiClient {
   }
 
   // Upload file
-  async upload<T>(endpoint: string, formData: FormData): Promise<T> {
+  async upload<T>(endpoint: string, formData: FormData, method: string = 'POST'): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
     const config: RequestInit = {
-      method: 'POST',
+      method: method,
       headers: {
         ...(this.getToken() && { Authorization: `Bearer ${this.getToken()}` }),
       },
