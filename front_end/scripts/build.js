@@ -1,11 +1,12 @@
+// Set environment variable to skip optional dependencies that might cause issues
+process.env.ROLLUP_DISABLE_NATIVE_ADDONS = '1';
+
 const { build } = require('vite');
 const path = require('path');
 
 async function buildProject() {
   try {
     console.log('Starting Vite build...');
-    // Set environment variable to skip optional dependencies that might cause issues
-    process.env.ROLLUP_DISABLE_NATIVE_ADDONS = '1';
     
     await build({
       root: path.resolve(__dirname, '..'),
