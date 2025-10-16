@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useBookingStore } from '../../store/bookingStore';
@@ -9,23 +9,26 @@ import { Label } from '../../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
-import { 
-  ArrowLeft, 
-  User, 
-  Calendar, 
-  Settings, 
-  LogOut, 
-  Edit3, 
+import {
+  ArrowLeft,
+  User,
+  Calendar,
+  Settings,
+  LogOut,
+  Edit3,
   Save,
   MapPin,
   Users,
   Clock,
   CreditCard,
-  ImageIcon
+  ImageIcon,
+  X
 } from 'lucide-react';
 import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { getRoomImageUrl } from '../../utils/imageUtils';
+import { bookingService } from '../../services/bookingService';
+import { CustomCancellationDialog } from '../../features/booking/components';
 
 // Get the API base URL from environment variables or use default
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -34,7 +37,7 @@ export function UserAccount() {
   const navigate = useNavigate();
   const { user, logout, isLoading } = useAuthStore();
   const { userBookings, fetchUserBookings, cancelBooking } = useBookingStore();
-  
+
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -43,18 +46,36 @@ export function UserAccount() {
     phone: '0901234567', // Mock data
     address: '123 Đường ABC, Quận 1, TP.HCM' // Mock data
   });
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const loadBookings = useCallback(async () => {
+    try {
+      setLoading(true);
+      await fetchUserBookings();
+      setError(null);
+    } catch (err) {
+      console.error('Error loading bookings:', err);
+      setError('Không thể tải dữ liệu đặt phòng. Vui lòng thử lại sau.');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchUserBookings]);
 
   useEffect(() => {
     if (user) {
-      fetchUserBookings();
       setProfileData({
         username: user.username,
         email: user.email,
         phone: '0901234567',
         address: '123 Đường ABC, Quận 1, TP.HCM'
       });
+
+      loadBookings();
     }
-  }, [user, fetchUserBookings]);
+  }, [user, loadBookings]);
 
   const handleSaveProfile = () => {
     // TODO: Implement profile update API call
@@ -108,6 +129,47 @@ export function UserAccount() {
     }
   };
 
+  // Helper function to get room image URL
+  const getBookingRoomImage = (room: any): string => {
+    // Check if room is a string (room ID) or null/undefined
+    if (!room || typeof room === 'string') {
+      return '';
+    }
+
+    // Check for image field (single image)
+    if (room.image) {
+      return getRoomImageUrl(room.image);
+    }
+
+    // Check for images array (multiple images)
+    if (room.images && Array.isArray(room.images) && room.images.length > 0) {
+      return getRoomImageUrl(room.images[0]);
+    }
+
+    // No image found
+    return '';
+  };
+
+  // Function to check if booking can be cancelled
+  const canCancelBooking = (booking: any) => {
+    // Only allow cancellation for confirmed bookings that are paid
+    if (booking.status !== 'confirmed' || booking.paymentStatus !== 'paid') {
+      return false;
+    }
+
+    // Check if there's already a cancellation request
+    if (booking.cancellationRequest) {
+      return false;
+    }
+
+    // Check if booking is within 24 hours of creation
+    const bookingCreated = new Date(booking.createdAt);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - bookingCreated.getTime()) / (1000 * 60 * 60);
+
+    return hoursDiff <= 24;
+  };
+
   if (!user) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -118,6 +180,11 @@ export function UserAccount() {
       </div>
     );
   }
+
+  const handleCancellationRequested = () => {
+    // Refresh bookings after cancellation request
+    loadBookings();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -212,7 +279,7 @@ export function UserAccount() {
                       disabled={!isEditing}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -223,7 +290,7 @@ export function UserAccount() {
                       disabled={!isEditing}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="phone">Số điện thoại</Label>
                     <Input
@@ -233,7 +300,7 @@ export function UserAccount() {
                       disabled={!isEditing}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label>Trạng thái tài khoản</Label>
                     <div>
@@ -243,7 +310,7 @@ export function UserAccount() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="address">Địa chỉ</Label>
                   <Input
@@ -272,16 +339,59 @@ export function UserAccount() {
           <TabsContent value="bookings">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Lịch sử đặt phòng
-                </CardTitle>
-                <CardDescription>
-                  Xem và quản lý các đặt phòng của bạn
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5" />
+                      Lịch sử đặt phòng
+                    </CardTitle>
+                    <CardDescription>
+                      Xem và quản lý các đặt phòng của bạn
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadBookings}
+                    disabled={loading}
+                    className=""
+                  >
+                    {loading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2"></div>
+                        Đang tải...
+                      </div>
+                    ) : (
+                      'Làm mới'
+                    )}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                {userBookings.length > 0 ? (
+                {loading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                    <span className="ml-2">Đang tải dữ liệu...</span>
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                    <Button
+                      variant="default"
+                      size="default"
+                      className="mt-4"
+                      onClick={() => {
+                        setLoading(true);
+                        setError(null);
+                        loadBookings();
+                      }}
+                    >
+                      Thử lại
+                    </Button>
+                  </div>
+                ) : userBookings.length > 0 ? (
                   <div className="space-y-4">
                     {userBookings.map((booking) => (
                       <div key={booking.id} className="border rounded-lg overflow-hidden">
@@ -289,10 +399,10 @@ export function UserAccount() {
                           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                             {/* Room Info */}
                             <div className="flex gap-4">
-                              {booking.room && typeof booking.room !== 'string' && (booking.room as any).images && Array.isArray((booking.room as any).images) && (booking.room as any).images.length > 0 ? (
+                              {booking.room && getBookingRoomImage(booking.room) ? (
                                 <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                                   <ImageWithFallback
-                                    src={getRoomImageUrl((booking.room as any).images[0])}
+                                    src={getBookingRoomImage(booking.room)}
                                     alt={typeof booking.room !== 'string' ? (booking.room as any).name : 'Room'}
                                     className="w-full h-full object-cover"
                                   />
@@ -302,7 +412,7 @@ export function UserAccount() {
                                   <ImageIcon className="h-6 w-6 text-gray-400" />
                                 </div>
                               )}
-                            
+
                               <div>
                                 <h3 className="font-semibold text-lg">
                                   {typeof booking.room !== 'string' ? (booking.room as any).name : `Phòng ${booking.room}`}
@@ -320,10 +430,16 @@ export function UserAccount() {
                             <div className="flex flex-wrap gap-2">
                               {getStatusBadge(booking.status)}
                               {getPaymentStatusBadge(booking.paymentStatus)}
+                              {booking.cancellationRequest && (
+                                <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+                                  {booking.cancellationRequest.status === 'pending' ? 'Chờ duyệt hủy' :
+                                    booking.cancellationRequest.status === 'approved' ? 'Đã duyệt hủy' : 'Từ chối hủy'}
+                                </Badge>
+                              )}
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="p-4">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                             <div className="flex items-center gap-2">
@@ -333,7 +449,7 @@ export function UserAccount() {
                                 <p className="text-sm font-medium">{formatDate(booking.checkInDate)}</p>
                               </div>
                             </div>
-                            
+
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-gray-500" />
                               <div>
@@ -341,7 +457,7 @@ export function UserAccount() {
                                 <p className="text-sm font-medium">{formatDate(booking.checkOutDate)}</p>
                               </div>
                             </div>
-                            
+
                             <div className="flex items-center gap-2">
                               <Users className="h-4 w-4 text-gray-500" />
                               <div>
@@ -349,7 +465,7 @@ export function UserAccount() {
                                 <p className="text-sm font-medium">{booking.adultCount + booking.childCount}</p>
                               </div>
                             </div>
-                            
+
                             <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4 text-gray-500" />
                               <div>
@@ -358,14 +474,14 @@ export function UserAccount() {
                               </div>
                             </div>
                           </div>
-                          
+
                           {booking.notes && (
                             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                               <p className="text-sm text-gray-500 mb-1">Yêu cầu đặc biệt:</p>
                               <p className="text-sm">{booking.notes}</p>
                             </div>
                           )}
-                          
+
                           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t">
                             <div className="flex items-center gap-2">
                               <CreditCard className="h-4 w-4 text-gray-500" />
@@ -373,7 +489,7 @@ export function UserAccount() {
                                 {formatCurrency(booking.totalPrice)}
                               </span>
                             </div>
-                            
+
                             <div className="flex flex-wrap gap-2">
                               <Button
                                 variant="outline"
@@ -383,7 +499,7 @@ export function UserAccount() {
                               >
                                 Xem chi tiết
                               </Button>
-                              
+
                               {booking.status === 'pending' && (
                                 <Button
                                   variant="outline"
@@ -394,13 +510,28 @@ export function UserAccount() {
                                   Hủy đặt phòng
                                 </Button>
                               )}
-                              
+
+                              {canCancelBooking(booking) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-orange-600 border-orange-600 hover:bg-orange-50"
+                                  onClick={() => {
+                                    // Show cancellation request modal
+                                    setSelectedBookingId(booking.id);
+                                    setShowCancellationModal(true);
+                                  }}
+                                >
+                                  Yêu cầu hủy
+                                </Button>
+                              )}
+
                               {booking.status === 'confirmed' && booking.paymentStatus === 'paid' && (
                                 <Button
                                   variant="default"
                                   size="sm"
                                   className=""
-                                  onClick={() => navigate(`/rooms/${typeof booking.room !== 'string' ? booking.room._id : booking.room}`)}
+                                  onClick={() => navigate(`/rooms/${typeof booking.room !== 'string' ? (booking.room as any)._id : booking.room}`)}
                                 >
                                   Đặt lại
                                 </Button>
@@ -450,7 +581,7 @@ export function UserAccount() {
                       Bật
                     </Button>
                   </div>
-                  
+
                   <div className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <h3 className="font-medium">Đổi mật khẩu</h3>
@@ -460,7 +591,7 @@ export function UserAccount() {
                       Đổi mật khẩu
                     </Button>
                   </div>
-                  
+
                   <div className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <h3 className="font-medium">Xóa tài khoản</h3>
@@ -476,11 +607,14 @@ export function UserAccount() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Cancellation Request Dialog */}
+      <CustomCancellationDialog
+        bookingId={selectedBookingId}
+        open={showCancellationModal}
+        onOpenChange={setShowCancellationModal}
+        onCancellationRequested={handleCancellationRequested}
+      />
     </div>
   );
 }
-
-
-
-
-

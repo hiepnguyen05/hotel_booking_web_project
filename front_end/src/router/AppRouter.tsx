@@ -5,33 +5,33 @@ import { useEffect } from 'react';
 // Layout Components
 import { MainLayout } from '../layouts/MainLayout';
 import { AdminLayout } from '../components/AdminLayout';
-import { SimpleAdminLayout } from '../components/SimpleAdminLayout';
 
 // Public Pages
-import { HomePage } from '../pages/HomePage';
-import { RoomsPage } from '../pages/RoomsPage';
-import { RoomDetailPage } from '../pages/RoomDetailPage';
-import { ContactPage } from '../components/user/ContactPage';
-import { UserLogin } from '../components/user/UserLogin';
+import { HomePage } from '../pages/Home/HomePage';
+import { RoomsPage } from '../pages/Rooms/RoomsPage';
+import { RoomDetailPage } from '../pages/Rooms/RoomDetailPage';
+import { ContactPage } from '../pages/User/ContactPage';
+import { UserLogin } from '../pages/User/UserLogin';
+import { UserRegister } from '../pages/User/UserRegister';
 
 // Protected User Pages
-import { BookingPage } from '../components/user/BookingPage';
-import { BookingConfirmation } from '../components/user/BookingConfirmation';
-import { UserAccount } from '../pages/user/UserAccount';
-import { UserBookings } from '../pages/user/UserBookings';
-import { BookingFlow } from '../pages/user/BookingFlow';
-import { MoMoPaymentPage } from '../pages/user/MoMoPaymentPage';
-import { BookingSuccess } from '../components/user/BookingSuccess';
-import { PaymentResultPage } from '../pages/user/PaymentResultPage';
-import { PaymentPage } from '../pages/user/PaymentPage';
+import { BookingPage } from '../features/booking/pages/BookingPage';
+import { PaymentPage } from '../features/booking/pages/PaymentPage';
+import { PaymentResultPage } from '../features/booking/pages/PaymentResultPage';
+import { UserAccount } from '../pages/User/UserAccount';
+import { BookingDetailPage } from '../pages/user/BookingDetailPage';
+import { BookingFlow } from '../pages/User/BookingFlow';
+import { MoMoPaymentPage } from '../features/booking/pages/MoMoPaymentPage';
+import { BookingSuccess } from '../pages/User/BookingSuccess';
 
 // Admin Pages
-import { AdminLogin } from '../pages/admin/AdminLogin';
-import { Dashboard } from '../components/admin/Dashboard';
-import { RoomManagement } from '../components/admin/RoomManagement';
-import { EnhancedBookingManagement } from '../components/admin/EnhancedBookingManagement';
-import { CustomerManagement } from '../pages/admin/CustomerManagement';
-import { AdminSettings } from '../pages/admin/AdminSettings';
+import { AdminLogin } from '../pages/Dashboard/AdminLogin';
+import { Dashboard } from '../pages/Dashboard/Dashboard';
+import { RoomManagement } from '../pages/Dashboard/RoomManagement';
+import { BookingManagement } from '../pages/Dashboard/BookingManagement';
+import { CustomerManagement } from '../pages/Dashboard/CustomerManagement';
+import { UserManagement } from '../pages/Dashboard/UserManagement';
+import { AdminSettings } from '../pages/Dashboard/AdminSettings';
 
 // Route Guards
 import { ProtectedRoute } from './ProtectedRoute';
@@ -56,31 +56,35 @@ export function AppRouter() {
           <Route path="rooms/:id" element={<RoomDetailPage />} />
           <Route path="contact" element={<ContactPage onBack={() => window.history.back()} />} />
           <Route path="login" element={<UserLogin onBack={() => window.history.back()} />} />
+          <Route path="register" element={<UserRegister onBack={() => window.history.back()} />} />
           <Route path="payment-result" element={<PaymentResultPage />} />
         </Route>
 
         {/* Protected User Routes */}
         <Route path="/user" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route path="booking/:roomId" element={<BookingFlow />} />
+          <Route path="bookings/:id/payment" element={<PaymentPage />} />
           <Route path="account" element={<UserAccount />} />
+          <Route path="booking/:id" element={<BookingDetailPage />} />
           <Route path="payment/momo" element={<MoMoPaymentPage />} />
-          <Route path="payment/:id" element={<PaymentPage />} />
+          <Route path="payment-result" element={<PaymentResultPage />} />
           <Route path="booking/success" element={
-            <BookingSuccess 
-              onBackToHome={() => window.location.href = '/'} 
-              onViewAccount={() => window.location.href = '/user/account'} 
+            <BookingSuccess
+              onBackToHome={() => window.location.href = '/'}
+              onViewAccount={() => window.location.href = '/user/account'}
             />
           } />
         </Route>
 
-        {/* Admin Routes */}
+        {/* Admin Routes - New Layout */}
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminRoute><SimpleAdminLayout /></AdminRoute>}>
+        <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="rooms" element={<RoomManagement />} />
-          <Route path="bookings" element={<EnhancedBookingManagement />} />
+          <Route path="bookings" element={<BookingManagement />} />
           <Route path="customers" element={<CustomerManagement />} />
+          <Route path="users" element={<UserManagement />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
 

@@ -33,12 +33,12 @@ class CancellationRequestService {
             const cancellationRequest = new CancellationRequest({
                 booking: bookingId,
                 user: userId,
-                reason: reason,
+                reason: reason
             });
 
             const savedRequest = await cancellationRequest.save();
-            
-            // Populate booking and user details
+
+            // Populate details
             await savedRequest.populate([
                 { path: "booking", populate: [{ path: "user" }, { path: "room" }] },
                 { path: "user" }
@@ -52,19 +52,19 @@ class CancellationRequestService {
     }
 
     /**
-     * Get all cancellation requests (admin)
-     * @returns {Promise<Array>} List of cancellation requests
+     * Get all cancellation requests
+     * @returns {Promise<Array>} Cancellation requests
      */
     async getAllCancellationRequests() {
         try {
-            const requests = await CancellationRequest.find()
+            const cancellationRequests = await CancellationRequest.find()
                 .populate([
                     { path: "booking", populate: [{ path: "user" }, { path: "room" }] },
                     { path: "user" }
                 ])
                 .sort({ createdAt: -1 });
-            
-            return requests;
+
+            return cancellationRequests;
         } catch (error) {
             console.error("Get cancellation requests error:", error);
             throw error;
@@ -72,19 +72,14 @@ class CancellationRequestService {
     }
 
     /**
-     * Update cancellation request status (admin)
+     * Update cancellation request status
      * @param {string} requestId - Cancellation request ID
-     * @param {string} status - New status
+     * @param {string} status - New status (approved/rejected)
      * @param {string} adminNotes - Admin notes
      * @returns {Promise<Object>} Updated cancellation request
      */
     async updateCancellationRequestStatus(requestId, status, adminNotes) {
         try {
-            const allowedStatuses = ["approved", "rejected"];
-            if (!allowedStatuses.includes(status)) {
-                throw new Error("Invalid status");
-            }
-
             // Find cancellation request
             const cancellationRequest = await CancellationRequest.findById(requestId);
             if (!cancellationRequest) {
@@ -98,46 +93,46 @@ class CancellationRequestService {
             }
 
             const updatedRequest = await cancellationRequest.save();
-            
+
+            // Populate details after save
+            await updatedRequest.populate([
+                { path: "booking", populate: [{ path: "user" }, { path: "room" }] },
+                { path: "user" }
+            ]);
+
             // If approved, update booking status
             if (status === "approved") {
                 const booking = await Booking.findById(cancellationRequest.booking);
                 if (booking) {
                     booking.status = "cancelled";
                     await booking.save();
-                    
+
                     // Send email notification
-                    await updatedRequest.populate([
-                        { path: "booking", populate: [{ path: "user" }, { path: "room" }] },
-                        { path: "user" }
-                    ]);
-                    
-                    await EmailService.sendBookingCancellationConfirmation(
-                        updatedRequest.booking, 
-                        updatedRequest.booking.room, 
-                        updatedRequest.booking.user
-                    );
+                    // Kiểm tra xem dữ liệu đã được populate chưa trước khi gửi email
+                    if (updatedRequest.booking && updatedRequest.booking.user && updatedRequest.booking.room) {
+                        await EmailService.sendBookingCancellationConfirmation(
+                            updatedRequest.booking,
+                            updatedRequest.booking.room,
+                            updatedRequest.booking.user
+                        );
+                    } else {
+                        console.error("Booking data not fully populated for email sending");
+                    }
                 }
             } else if (status === "rejected") {
                 // Send email notification for rejection
-                await updatedRequest.populate([
-                    { path: "booking", populate: [{ path: "user" }, { path: "room" }] },
-                    { path: "user" }
-                ]);
-                
-                await EmailService.sendBookingCancellationRejection(
-                    updatedRequest.booking, 
-                    updatedRequest.booking.room, 
-                    updatedRequest.booking.user,
-                    adminNotes
-                );
+                // Kiểm tra xem dữ liệu đã được populate chưa trước khi gửi email
+                if (updatedRequest.booking && updatedRequest.booking.user && updatedRequest.booking.room) {
+                    await EmailService.sendBookingCancellationRejection(
+                        updatedRequest.booking,
+                        updatedRequest.booking.room,
+                        updatedRequest.booking.user,
+                        adminNotes
+                    );
+                } else {
+                    console.error("Booking data not fully populated for rejection email sending");
+                }
             }
-
-            // Populate details
-            await updatedRequest.populate([
-                { path: "booking", populate: [{ path: "user" }, { path: "room" }] },
-                { path: "user" }
-            ]);
 
             return updatedRequest;
         } catch (error) {
@@ -156,7 +151,7 @@ class CancellationRequestService {
             // Find cancellation request
             const cancellationRequest = await CancellationRequest.findById(requestId)
                 .populate("booking");
-                
+
             if (!cancellationRequest) {
                 throw new Error("Cancellation request not found");
             }
@@ -168,28 +163,28 @@ class CancellationRequestService {
             // Update refund status to pending
             cancellationRequest.refundStatus = "pending";
             cancellationRequest.refundAmount = cancellationRequest.booking.totalPrice;
-            
+
             const updatedRequest = await cancellationRequest.save();
 
             // In a real implementation, you would call MoMo refund API here
-            // For now, we'll simulate the refund process
+            // For now, we'll simulate the refund process with a much shorter delay
             try {
-                // Simulate refund processing
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
+                // Simulate refund processing with shorter delay (100ms instead of 500ms)
+                await new Promise(resolve => setTimeout(resolve, 100));
+
                 // Update refund status to completed
                 cancellationRequest.refundStatus = "completed";
                 await cancellationRequest.save();
-                
+
                 // Send refund confirmation email
                 await cancellationRequest.populate([
                     { path: "booking", populate: [{ path: "user" }, { path: "room" }] },
                     { path: "user" }
                 ]);
-                
+
                 await EmailService.sendRefundConfirmation(
-                    cancellationRequest.booking, 
-                    cancellationRequest.booking.room, 
+                    cancellationRequest.booking,
+                    cancellationRequest.booking.room,
                     cancellationRequest.booking.user,
                     cancellationRequest.refundAmount
                 );

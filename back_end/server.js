@@ -97,6 +97,20 @@ app.use((req, res, next) => {
   next();
 });
 
+// Add a specific middleware for MoMo payment routes to debug them
+app.use("/api/bookings/:bookingId/momo-payment", (req, res, next) => {
+  console.log('[MOMO DEBUG] MoMo payment route middleware triggered');
+  console.log('[MOMO DEBUG] Request method:', req.method);
+  console.log('[MOMO DEBUG] Request URL:', req.originalUrl);
+  console.log('[MOMO DEBUG] Request params:', req.params);
+  console.log('[MOMO DEBUG] Request body:', req.body);
+  console.log('[MOMO DEBUG] Request headers:', {
+    authorization: req.headers.authorization,
+    'content-type': req.headers['content-type']
+  });
+  next();
+});
+
 // Update CORS configuration to allow network access
 const allowedOrigins = [
   "http://localhost:3000",

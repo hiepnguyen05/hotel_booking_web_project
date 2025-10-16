@@ -1,263 +1,323 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { useBookingStore } from '../../store/bookingStore';
 import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
-import { Loader2, Calendar, Users, CreditCard, ArrowLeft, RefreshCw } from 'lucide-react';
-import { bookingService } from '../../services/bookingService';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
-import { toast } from 'sonner';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { 
+  ArrowLeft, 
+  Calendar, 
+  Users, 
+  CreditCard, 
+  MapPin,
+  Phone,
+  Mail
+} from 'lucide-react';
 
-interface Booking {
-  _id: string;
-  bookingCode: string;
-  room: {
-    name: string;
-    type: string;
-    description: string;
-    amenities: string[];
-  };
-  checkInDate: string;
-  checkOutDate: string;
-  adultCount: number;
-  childCount: number;
-  roomCount: number;
-  totalPrice: number;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
-  paymentStatus: 'pending' | 'paid' | 'failed';
-  createdAt: string;
-  notes?: string;
-}
+// Status badge component
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'confirmed':
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Đã xác nhận</Badge>;
+    case 'pending':
+      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Chờ xử lý</Badge>;
+    case 'cancelled':
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Đã hủy</Badge>;
+    case 'completed':
+      return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Đã hoàn thành</Badge>;
+    default:
+      return <Badge>{status}</Badge>;
+  }
+};
+
+// Payment status badge component
+const getPaymentStatusBadge = (status: string) => {
+  switch (status) {
+    case 'paid':
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Đã thanh toán</Badge>;
+    case 'pending':
+      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Chưa thanh toán</Badge>;
+    case 'failed':
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Thanh toán thất bại</Badge>;
+    case 'refunded':
+      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Đã hoàn tiền</Badge>;
+    default:
+      return <Badge>{status}</Badge>;
+  }
+};
 
 export function BookingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [booking, setBooking] = useState(null as Booking | null);
-  const [loading, setLoading] = useState(true);
-  const [polling, setPolling] = useState(false);
+  const { selectedBooking, isLoading, error, fetchBookingById, clearError } = useBookingStore();
+  const [roomImages, setRoomImages] = useState([] as string[]);
 
   useEffect(() => {
     if (id) {
-      loadBooking(id);
-      
-      // Start polling for updates
-      const interval = setInterval(() => {
-        checkForBookingUpdates(id);
-      }, 5000); // Poll every 5 seconds
-      
-      return () => clearInterval(interval);
+      fetchBookingById(id);
     }
-  }, [id]);
+  }, [id, fetchBookingById]);
 
-  const loadBooking = async (bookingId: string) => {
-    try {
-      setLoading(true);
-      const bookingData: any = await bookingService.getBookingById(bookingId);
-      setBooking(bookingData);
-    } catch (error) {
-      console.error('Error loading booking:', error);
-      toast.error('Có lỗi xảy ra khi tải thông tin đặt phòng');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (selectedBooking && selectedBooking.room && typeof selectedBooking.room === 'object') {
+      setRoomImages((selectedBooking.room as any).images || []);
     }
-  };
+  }, [selectedBooking]);
 
-  const checkForBookingUpdates = async (bookingId: string) => {
-    try {
-      setPolling(true);
-      const bookingData: any = await bookingService.getBookingById(bookingId);
-      
-      // Check if booking status has changed
-      if (booking && 
-          (booking.status !== bookingData.status || 
-           booking.paymentStatus !== bookingData.paymentStatus)) {
-        // Show toast notification for updated booking
-        if (bookingData.paymentStatus === 'paid' && bookingData.status === 'confirmed') {
-          toast.success('Đặt phòng đã được xác nhận!');
-        } else if (bookingData.paymentStatus === 'failed') {
-          toast.error('Thanh toán thất bại!');
-        }
-        
-        setBooking(bookingData);
-      }
-    } catch (error) {
-      console.error('Error checking for booking updates:', error);
-    } finally {
-      setPolling(false);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return <Badge variant="default">Đã xác nhận</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Chờ xử lý</Badge>;
-      case 'cancelled':
-        return <Badge variant="destructive">Đã hủy</Badge>;
-      case 'completed':
-        return <Badge variant="default">Đã hoàn thành</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  const getPaymentStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge variant="default">Đã thanh toán</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Chờ thanh toán</Badge>;
-      case 'failed':
-        return <Badge variant="destructive">Thất bại</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-gray-600">Đang tải thông tin đặt phòng...</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2 text-gray-600">Đang tải thông tin đặt phòng...</span>
         </div>
       </div>
     );
   }
 
-  if (!booking) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Không tìm thấy thông tin đặt phòng</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
           <Button 
-            variant="outline" 
+            variant="default" 
             size="default"
-            className=""
-            onClick={() => navigate('/user/bookings')}
+            className="mt-4" 
+            onClick={() => {
+              clearError();
+              if (id) fetchBookingById(id);
+            }}
           >
-            Quay lại danh sách
+            Thử lại
           </Button>
         </div>
       </div>
     );
   }
 
+  if (!selectedBooking) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold mb-4">Không tìm thấy thông tin đặt phòng</h2>
+          <Button variant="default" size="default" className="" onClick={() => navigate(-1)}>Quay lại</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Get room information
+  const roomInfo = selectedBooking.room && typeof selectedBooking.room === 'object' ? selectedBooking.room as any : null;
+  
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="flex justify-between items-center mb-6">
-          <Button 
-            variant="outline" 
-            size="default"
-            className=""
-            onClick={() => navigate('/user/bookings')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Quay lại
-          </Button>
-          <Button 
-            variant="outline" 
-            size="default"
-            className=""
-            onClick={() => checkForBookingUpdates(booking._id)}
-            disabled={polling}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${polling ? 'animate-spin' : ''}`} />
-            {polling ? 'Đang cập nhật...' : 'Cập nhật'}
-          </Button>
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          size="default"
+          className="p-2 mb-4"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Quay lại
+        </Button>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Chi tiết đặt phòng</h1>
+            <p className="text-gray-600">Mã đặt phòng: #{selectedBooking.bookingCode}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {getStatusBadge(selectedBooking.status)}
+            {getPaymentStatusBadge(selectedBooking.paymentStatus)}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Room Information */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Thông tin phòng
+              </CardTitle>
+              <CardDescription>
+                Chi tiết về phòng bạn đã đặt
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {roomInfo ? (
+                <div className="space-y-4">
+                  <div className="flex flex-col md:flex-row gap-4">
+                    {roomImages.length > 0 && (
+                      <div className="md:w-1/3">
+                        <img 
+                          src={roomImages[0]} 
+                          alt={roomInfo.name}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+                    <div className={roomImages.length > 0 ? "md:w-2/3" : ""}>
+                      <h3 className="text-xl font-bold">{roomInfo.name}</h3>
+                      <p className="text-gray-600 mt-1">{roomInfo.description}</p>
+                      
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Loại phòng</p>
+                          <p className="font-medium">{roomInfo.type}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Sức chứa</p>
+                          <p className="font-medium">{roomInfo.capacity} người</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Giá mỗi đêm</p>
+                          <p className="font-medium">{(roomInfo.pricePerNight || 0).toLocaleString('vi-VN')}₫</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Trạng thái</p>
+                          <p className="font-medium">{roomInfo.status}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p>Không có thông tin phòng</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Booking Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Thông tin đặt phòng
+              </CardTitle>
+              <CardDescription>
+                Chi tiết về đơn đặt phòng của bạn
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Ngày nhận phòng</p>
+                  <p className="font-medium">
+                    {selectedBooking.checkInDate ? new Date(selectedBooking.checkInDate).toLocaleDateString('vi-VN') : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Ngày trả phòng</p>
+                  <p className="font-medium">
+                    {selectedBooking.checkOutDate ? new Date(selectedBooking.checkOutDate).toLocaleDateString('vi-VN') : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Số đêm</p>
+                  <p className="font-medium">
+                    {selectedBooking.checkInDate && selectedBooking.checkOutDate ? 
+                      Math.ceil((new Date(selectedBooking.checkOutDate).getTime() - new Date(selectedBooking.checkInDate).getTime()) / (1000 * 60 * 60 * 24)) : 
+                      'N/A'} đêm
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Ngày đặt</p>
+                  <p className="font-medium">
+                    {selectedBooking.createdAt ? new Date(selectedBooking.createdAt).toLocaleString('vi-VN') : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Số lượng người</p>
+                  <p className="font-medium">
+                    {selectedBooking.adultCount + selectedBooking.childCount} khách 
+                    ({selectedBooking.adultCount} người lớn, {selectedBooking.childCount} trẻ em)
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Số lượng phòng</p>
+                  <p className="font-medium">{selectedBooking.roomCount} phòng</p>
+                </div>
+              </div>
+              
+              {selectedBooking.notes && (
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600">Ghi chú</p>
+                  <p className="font-medium">{selectedBooking.notes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-2xl">Chi tiết đặt phòng</CardTitle>
-                <p className="text-gray-500 mt-1">Mã đặt phòng: {booking.bookingCode}</p>
-              </div>
-              <div className="flex gap-2">
-                {getStatusBadge(booking.status)}
-                {getPaymentStatusBadge(booking.paymentStatus)}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Thông tin phòng</h3>
-                <div className="space-y-2">
-                  <p><span className="font-medium">Tên phòng:</span> {booking.room.name}</p>
-                  <p><span className="font-medium">Loại phòng:</span> {booking.room.type}</p>
-                  <p><span className="font-medium">Số lượng:</span> {booking.roomCount} phòng</p>
+        {/* Booking Summary */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Tổng kết thanh toán
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span>Giá phòng mỗi đêm</span>
+                  <span>{roomInfo ? (roomInfo.pricePerNight || 0).toLocaleString('vi-VN') : 0}₫</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Số đêm</span>
+                  <span>
+                    {selectedBooking.checkInDate && selectedBooking.checkOutDate ? 
+                      Math.ceil((new Date(selectedBooking.checkOutDate).getTime() - new Date(selectedBooking.checkInDate).getTime()) / (1000 * 60 * 60 * 24)) : 
+                      0} đêm
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Số lượng phòng</span>
+                  <span>{selectedBooking.roomCount}</span>
+                </div>
+                <div className="border-t border-gray-200 pt-3 flex justify-between font-bold">
+                  <span>Tổng tiền</span>
+                  <span className="text-primary">{(selectedBooking.totalPrice || 0).toLocaleString('vi-VN')}₫</span>
                 </div>
               </div>
-              
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Thời gian lưu trú</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <Calendar className="h-5 w-5 mr-2 text-gray-500" />
-                    <div>
-                      <p className="text-sm text-gray-500">Ngày nhận</p>
-                      <p className="font-medium">
-                        {format(new Date(booking.checkInDate), 'dd/MM/yyyy', { locale: vi })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar className="h-5 w-5 mr-2 text-gray-500" />
-                    <div>
-                      <p className="text-sm text-gray-500">Ngày trả</p>
-                      <p className="font-medium">
-                        {format(new Date(booking.checkOutDate), 'dd/MM/yyyy', { locale: vi })}
-                      </p>
-                    </div>
-                  </div>
+            </CardContent>
+          </Card>
+
+          {/* Contact Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Phone className="h-5 w-5" />
+                Thông tin liên hệ
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-600">Họ và tên</p>
+                  <p className="font-medium">{selectedBooking.fullName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Email</p>
+                  <p className="font-medium">{selectedBooking.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Số điện thoại</p>
+                  <p className="font-medium">{selectedBooking.phone}</p>
                 </div>
               </div>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Thông tin khách</h3>
-                <div className="space-y-2">
-                  <p><span className="font-medium">Người lớn:</span> {booking.adultCount}</p>
-                  <p><span className="font-medium">Trẻ em:</span> {booking.childCount}</p>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Thông tin thanh toán</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <CreditCard className="h-5 w-5 mr-2 text-gray-500" />
-                    <div>
-                      <p className="text-sm text-gray-500">Tổng tiền</p>
-                      <p className="font-bold text-lg text-primary">
-                        {booking.totalPrice.toLocaleString('vi-VN')}₫
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {booking.notes && (
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Ghi chú</h3>
-                <p className="text-gray-600 bg-gray-50 p-3 rounded-lg">{booking.notes}</p>
-              </div>
-            )}
-            
-            <div className="pt-4 border-t">
-              <p className="text-sm text-gray-500">
-                Đặt ngày: {format(new Date(booking.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

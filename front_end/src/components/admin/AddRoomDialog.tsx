@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Badge } from "../ui/badge";
 import { X, Upload, Plus } from "lucide-react";
@@ -43,21 +42,21 @@ const COMMON_AMENITIES = [
 
 export function AddRoomDialog({ open, onOpenChange, onSuccess }: AddRoomDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [selectedImages, setSelectedImages] = useState([] as File[]);
   const [newAmenity, setNewAmenity] = useState('');
   
-  const [formData, setFormData] = useState<CreateRoomData>({
+  const [formData, setFormData] = useState({
     name: '',
     type: 'single',
     bedType: 'single',
     description: '',
     price: 0,
     capacity: 1,
-    amenities: [],
+    amenities: [] as string[],
     status: 'available'
-  });
+  } as CreateRoomData);
 
-  const handleInputChange = (field: keyof CreateRoomData, value: any) => {
+  const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -102,23 +101,27 @@ export function AddRoomDialog({ open, onOpenChange, onSuccess }: AddRoomDialogPr
         images: selectedImages
       };
 
-      await roomService.createRoom(roomData);
+      const result = await roomService.createRoom(roomData);
       
-      // Reset form
-      setFormData({
-        name: '',
-        type: 'single',
-        bedType: 'single',
-        description: '',
-        price: 0,
-        capacity: 1,
-        amenities: [],
-        status: 'available'
-      });
-      setSelectedImages([]);
-      
-      onSuccess();
-      onOpenChange(false);
+      if (result) {
+        // Reset form
+        setFormData({
+          name: '',
+          type: 'single',
+          bedType: 'single',
+          description: '',
+          price: 0,
+          capacity: 1,
+          amenities: [],
+          status: 'available'
+        } as CreateRoomData);
+        setSelectedImages([]);
+        
+        onSuccess();
+        onOpenChange(false);
+      } else {
+        alert('Có lỗi xảy ra khi tạo phòng. Vui lòng thử lại.');
+      }
     } catch (error) {
       console.error('Create room error:', error);
       alert('Có lỗi xảy ra khi tạo phòng. Vui lòng thử lại.');
@@ -224,11 +227,12 @@ export function AddRoomDialog({ open, onOpenChange, onSuccess }: AddRoomDialogPr
 
             <div className="space-y-2">
               <Label htmlFor="description">Mô tả phòng</Label>
-              <Textarea
+              <textarea
                 id="description"
-                value={formData.description}
+                value={formData.description || ''}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Mô tả chi tiết về phòng..."
+                className="w-full p-2 border border-gray-300 rounded-md"
                 rows={3}
               />
             </div>
@@ -265,9 +269,9 @@ export function AddRoomDialog({ open, onOpenChange, onSuccess }: AddRoomDialogPr
                         className="w-full h-20 object-cover rounded"
                       />
                       <Button
+                        className=""
                         size="sm"
                         variant="destructive"
-                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
                         onClick={() => removeImage(index)}
                       >
                         <X className="h-3 w-3" />
@@ -288,6 +292,7 @@ export function AddRoomDialog({ open, onOpenChange, onSuccess }: AddRoomDialogPr
                   <Button
                     key={amenity}
                     type="button"
+                    className=""
                     variant={formData.amenities.includes(amenity) ? "default" : "outline"}
                     size="sm"
                     onClick={() => {
@@ -297,7 +302,6 @@ export function AddRoomDialog({ open, onOpenChange, onSuccess }: AddRoomDialogPr
                         addAmenity(amenity);
                       }
                     }}
-                    className="justify-start text-xs"
                   >
                     {amenity}
                   </Button>
@@ -312,7 +316,13 @@ export function AddRoomDialog({ open, onOpenChange, onSuccess }: AddRoomDialogPr
                   onChange={(e) => setNewAmenity(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddCustomAmenity()}
                 />
-                <Button type="button" onClick={handleAddCustomAmenity}>
+                <Button 
+                  className=""
+                  type="button" 
+                  variant="default"
+                  size="default"
+                  onClick={handleAddCustomAmenity}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -335,10 +345,21 @@ export function AddRoomDialog({ open, onOpenChange, onSuccess }: AddRoomDialogPr
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-2 pt-4 sticky bottom-0 bg-white pt-4 border-t">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Button 
+                className=""
+                variant="outline" 
+                size="default"
+                onClick={() => onOpenChange(false)}
+              >
                 Hủy
               </Button>
-              <Button onClick={handleSubmit} disabled={isLoading}>
+              <Button 
+                className=""
+                variant="default"
+                size="default"
+                onClick={handleSubmit} 
+                disabled={isLoading}
+              >
                 {isLoading ? 'Đang tạo...' : 'Thêm phòng'}
               </Button>
             </div>
@@ -348,8 +369,3 @@ export function AddRoomDialog({ open, onOpenChange, onSuccess }: AddRoomDialogPr
     </Dialog>
   );
 }
-
-
-
-
-

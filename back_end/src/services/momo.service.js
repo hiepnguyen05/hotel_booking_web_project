@@ -36,7 +36,7 @@ class MoMoService {
       
       const requestId = orderId;
       const extraData = ''; // Pass more data if needed
-      const requestType = "payWithMethod";
+      const requestType = "captureWallet";
       const lang = "vi";
       const autoCapture = true;
       const orderGroupId = '';
@@ -76,7 +76,9 @@ class MoMoService {
       console.log('[MOMO SERVICE] Request body:', JSON.stringify(requestBody, null, 2));
 
       // Send request to MoMo
+      console.log('[MOMO SERVICE] Sending request to MoMo endpoint:', this.endpoint);
       const response = await axios.post(this.endpoint, requestBody);
+      console.log('[MOMO SERVICE] Response received from MoMo');
 
       console.log('[MOMO SERVICE] Response status:', response.status);
       console.log('[MOMO SERVICE] Response data:', JSON.stringify(response.data, null, 2));
@@ -93,10 +95,11 @@ class MoMoService {
         }
       };
     } catch (error) {
-      console.error('MoMo payment creation error:', error);
+      console.error('[MOMO SERVICE] MoMo payment creation error:', error);
       if (error.response) {
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
+        console.error('[MOMO SERVICE] Response data:', error.response.data);
+        console.error('[MOMO SERVICE] Response status:', error.response.status);
+        console.error('[MOMO SERVICE] Response headers:', error.response.headers);
       }
       return {
         success: false,

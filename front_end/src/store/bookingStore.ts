@@ -15,7 +15,7 @@ interface BookingState {
     completedBookings: number;
     totalRevenue: number;
   };
-  
+
   // Actions
   createBooking: (bookingData: CreateBookingData) => Promise<Booking | null>;
   fetchUserBookings: (userId?: string) => Promise<void>;
@@ -46,10 +46,10 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
   createBooking: async (bookingData: CreateBookingData) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const newBooking = await bookingService.createBooking(bookingData);
-      
+
       if (newBooking) {
         const currentUserBookings = get().userBookings;
         set({
@@ -59,7 +59,7 @@ export const useBookingStore = create<BookingState>((set, get) => ({
         });
         return newBooking;
       }
-      
+
       set({ isLoading: false });
       return null;
     } catch (error) {
@@ -73,15 +73,17 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
   fetchUserBookings: async (userId?: string) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const bookings = await bookingService.getUserBookings(userId);
-      
+      console.log('Bookings fetched from service:', bookings);
+
       set({
         userBookings: bookings,
         isLoading: false
       });
     } catch (error) {
+      console.error('Error in fetchUserBookings store:', error);
       set({
         error: error instanceof Error ? error.message : 'Lỗi tải danh sách đặt phòng',
         isLoading: false
@@ -91,12 +93,12 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
   fetchAllBookings: async (params?: BookingSearchParams) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const result = await bookingService.getAllBookings(params);
-      
+
       set({
-        bookings: result.bookings,
+        bookings: result.bookings as unknown as Booking[], // Type assertion to fix the error
         isLoading: false
       });
     } catch (error) {
@@ -109,10 +111,10 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
   fetchBookingById: async (id: string) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const booking = await bookingService.getBookingById(id);
-      
+
       if (booking) {
         set({
           selectedBooking: booking,
@@ -134,49 +136,45 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
   updateBookingStatus: async (id: string, status: Booking['status']) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const updatedBooking = await bookingService.updateBookingStatus(id, status);
-      
+
       if (updatedBooking) {
         // Update in userBookings
         const currentUserBookings = get().userBookings;
         const updatedUserBookings = currentUserBookings.map(booking => {
           if (booking.id === id) {
-            // Create new booking object with correct type
-            const newBooking: Booking = {
+            return {
               ...booking,
-              status: updatedBooking.status as Booking['status']
-            };
-            return newBooking;
+              status: updatedBooking.status
+            } as Booking;
           }
           return booking;
         });
-        
+
         // Update in bookings (admin)
         const currentBookings = get().bookings;
         const updatedBookings = currentBookings.map(booking => {
           if (booking.id === id) {
-            // Create new booking object with correct type
-            const newBooking: Booking = {
+            return {
               ...booking,
-              status: updatedBooking.status as Booking['status']
-            };
-            return newBooking;
+              status: updatedBooking.status
+            } as Booking;
           }
           return booking;
         });
-        
+
         set({
-          userBookings: updatedUserBookings as Booking[],
-          bookings: updatedBookings as Booking[],
+          userBookings: updatedUserBookings,
+          bookings: updatedBookings,
           selectedBooking: updatedBooking,
           isLoading: false
         });
-        
+
         return true;
       }
-      
+
       set({ isLoading: false });
       return false;
     } catch (error) {
@@ -190,32 +188,32 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
   cancelBooking: async (id: string) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const success = await bookingService.cancelBooking(id);
-      
+
       if (success) {
         // Update in userBookings
         const currentUserBookings = get().userBookings;
-        const updatedUserBookings = currentUserBookings.map(booking => 
-          booking.id === id ? { ...booking, status: 'cancelled' } : booking
+        const updatedUserBookings = currentUserBookings.map(booking =>
+          booking.id === id ? { ...booking, status: 'cancelled' } as Booking : booking
         );
-        
+
         // Update in bookings (admin)
         const currentBookings = get().bookings;
-        const updatedBookings = currentBookings.map(booking => 
-          booking.id === id ? { ...booking, status: 'cancelled' } : booking
+        const updatedBookings = currentBookings.map(booking =>
+          booking.id === id ? { ...booking, status: 'cancelled' } as Booking : booking
         );
-        
+
         set({
           userBookings: updatedUserBookings,
           bookings: updatedBookings,
           isLoading: false
         });
-        
+
         return true;
       }
-      
+
       set({ isLoading: false });
       return false;
     } catch (error) {
@@ -229,36 +227,36 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
   processPayment: async (paymentData: PaymentData) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const result = await bookingService.processPayment(paymentData);
-      
+
       if (result.success) {
         // Update booking payment status
         const currentUserBookings = get().userBookings;
-        const updatedUserBookings = currentUserBookings.map(booking => 
-          booking.id === paymentData.bookingId 
-            ? { ...booking, paymentStatus: 'paid', status: 'confirmed' }
+        const updatedUserBookings = currentUserBookings.map(booking =>
+          booking.id === paymentData.bookingId
+            ? { ...booking, paymentStatus: 'paid', status: 'confirmed' } as Booking
             : booking
         );
-        
+
         // Also update in admin bookings list
         const currentBookings = get().bookings;
-        const updatedBookings = currentBookings.map(booking => 
-          booking.id === paymentData.bookingId 
-            ? { ...booking, paymentStatus: 'paid', status: 'confirmed' }
+        const updatedBookings = currentBookings.map(booking =>
+          booking.id === paymentData.bookingId
+            ? { ...booking, paymentStatus: 'paid', status: 'confirmed' } as Booking
             : booking
         );
-        
+
         set({
-          userBookings: updatedUserBookings as unknown as Booking[],
-          bookings: updatedBookings as unknown as Booking[],
+          userBookings: updatedUserBookings,
+          bookings: updatedBookings,
           isLoading: false
         });
       } else {
         set({ isLoading: false });
       }
-      
+
       return result;
     } catch (error) {
       set({

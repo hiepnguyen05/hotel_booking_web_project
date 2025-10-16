@@ -1,0 +1,755 @@
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import { Input } from "../../components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { Textarea } from "../../components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import {
+  Plus,
+  Search,
+  RefreshCw,
+  Filter,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Calendar,
+  User,
+  CreditCard,
+  Eye,
+  XCircleIcon,
+  Ban,
+  Wallet
+} from "lucide-react";
+import { bookingService, Booking, CancellationRequest } from "../../services/bookingService";
+import { formatCurrency } from "../../utils/formatters";
+import { useToast } from "../../contexts/ToastContext";
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'confirmed':
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100 flex items-center gap-1">
+        <CheckCircle className="h-3 w-3" />
+        Đã xác nhận
+      </Badge>;
+    case 'pending':
+      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 flex items-center gap-1">
+        <Clock className="h-3 w-3" />
+        Chờ xử lý
+      </Badge>;
+    case 'cancelled':
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100 flex items-center gap-1">
+        <XCircleIcon className="h-3 w-3" />
+        Đã hủy
+      </Badge>;
+    case 'completed':
+      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 flex items-center gap-1">
+        <CheckCircle className="h-3 w-3" />
+        Đã hoàn thành
+      </Badge>;
+    default:
+      return <Badge className="flex items-center gap-1">
+        <Clock className="h-3 w-3" />
+        {status}
+      </Badge>;
+  }
+};
+
+const getPaymentStatusBadge = (status: string) => {
+  switch (status) {
+    case 'paid':
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+        Đã thanh toán
+      </Badge>;
+    case 'pending':
+      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+        Chờ thanh toán
+      </Badge>;
+    case 'refunded':
+      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+        Đã hoàn tiền
+      </Badge>;
+    case 'failed':
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+        Thất bại
+      </Badge>;
+    default:
+      return <Badge>{status}</Badge>;
+  }
+};
+
+const getCancellationStatusBadge = (cancellationRequest: CancellationRequest | null | undefined) => {
+  if (!cancellationRequest) {
+    return <Badge variant="outline">Không có yêu cầu</Badge>;
+  }
+
+  switch (cancellationRequest.status) {
+    case 'pending':
+      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+        Chờ duyệt
+      </Badge>;
+    case 'approved':
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+        Đã duyệt
+      </Badge>;
+    case 'rejected':
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+        Đã từ chối
+      </Badge>;
+    default:
+      return <Badge>{cancellationRequest.status}</Badge>;
+  }
+};
+
+export function BookingManagement() {
+  const { showSuccess, showError } = useToast();
+  const [bookings, setBookings] = useState([] as Booking[]);
+  const [cancellationRequests, setCancellationRequests] = useState([] as CancellationRequest[]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCancellationLoading, setIsCancellationLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalBookings, setTotalBookings] = useState(0);
+  const [viewMode, setViewMode] = useState("bookings");
+  const [selectedCancellation, setSelectedCancellation] = useState(null as CancellationRequest | null);
+  const [adminNotes, setAdminNotes] = useState("");
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+
+  // Load bookings from backend
+  const loadBookings = async () => {
+    setIsLoading(true);
+    try {
+      const params: any = {
+        page: currentPage,
+        limit: 10,
+      };
+
+      if (filterStatus !== "all") {
+        params.status = filterStatus;
+      }
+
+      if (filterPaymentStatus !== "all") {
+        params.paymentStatus = filterPaymentStatus;
+      }
+
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+
+      const result = await bookingService.getAllBookings(params);
+      setBookings(result.bookings);
+      setTotalPages(result.totalPages);
+      setTotalBookings(result.total);
+    } catch (error) {
+      console.error('Load bookings error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load cancellation requests
+  const loadCancellationRequests = async () => {
+    setIsCancellationLoading(true);
+    try {
+      const requests = await bookingService.getAllCancellationRequests();
+      setCancellationRequests(requests);
+    } catch (error) {
+      console.error('Load cancellation requests error:', error);
+    } finally {
+      setIsCancellationLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (viewMode === "bookings") {
+      loadBookings();
+    } else {
+      loadCancellationRequests();
+    }
+  }, [currentPage, filterStatus, filterPaymentStatus, viewMode]);
+
+  // Filter bookings (additional client-side filtering)
+  const filteredBookings = bookings.filter(booking => {
+    const matchesSearch = booking._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (typeof booking.user !== 'string' && (booking.user as any).username?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (typeof booking.room !== 'string' && (booking.room as any).name?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    return matchesSearch;
+  });
+
+  const handleViewBooking = (bookingId: string) => {
+    // Logic for viewing booking details
+    console.log("View booking:", bookingId);
+  };
+
+  const handleEditBooking = (bookingId: string) => {
+    // Logic for editing booking
+    console.log("Edit booking:", bookingId);
+  };
+
+  const handleCancelBooking = (bookingId: string) => {
+    // Logic for cancelling booking
+    console.log("Cancel booking:", bookingId);
+  };
+
+  const handleConfirmBooking = async (bookingId: string) => {
+    try {
+      const updatedBooking = await bookingService.updateBookingStatus(bookingId, 'confirmed');
+      if (updatedBooking) {
+        // Update the booking in the list
+        setBookings(prev => prev.map(booking =>
+          booking._id === bookingId ? updatedBooking : booking
+        ));
+      }
+    } catch (error) {
+      console.error('Confirm booking error:', error);
+      alert('Có lỗi xảy ra khi xác nhận đặt phòng. Vui lòng thử lại.');
+    }
+  };
+
+  const handleApproveCancellation = async (requestId: string) => {
+    try {
+      setIsLoading(true);
+      // First approve the cancellation request
+      const updatedRequest = await bookingService.updateCancellationRequestStatus(requestId, 'approved', adminNotes);
+
+      // Then process the refund
+      const refundedRequest = await bookingService.processRefund(requestId);
+
+      // Update the cancellation requests list
+      setCancellationRequests(prev => prev.map(req =>
+        req._id === requestId ? refundedRequest : req
+      ));
+
+      // Also update in the bookings list if the booking is displayed there
+      setBookings(prev => prev.map(booking =>
+        booking._id === refundedRequest.booking ?
+          { ...booking, status: 'cancelled', paymentStatus: 'refunded', cancellationRequest: refundedRequest } :
+          booking
+      ));
+
+      setShowApproveDialog(false);
+      setAdminNotes("");
+      showSuccess('Yêu cầu hủy đã được duyệt và hoàn tiền đã được xử lý.');
+    } catch (error) {
+      console.error('Approve cancellation error:', error);
+      showError('Có lỗi xảy ra khi duyệt yêu cầu hủy. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRejectCancellation = async (requestId: string) => {
+    try {
+      const updatedRequest = await bookingService.updateCancellationRequestStatus(requestId, 'rejected', adminNotes);
+
+      // Update the cancellation requests list
+      setCancellationRequests(prev => prev.map(req =>
+        req._id === requestId ? updatedRequest : req
+      ));
+
+      // Also update in the bookings list if the booking is displayed there
+      setBookings(prev => prev.map(booking =>
+        booking._id === updatedRequest.booking ?
+          { ...booking, cancellationRequest: updatedRequest } :
+          booking
+      ));
+
+      setShowRejectDialog(false);
+      setAdminNotes("");
+      showSuccess('Yêu cầu hủy đã bị từ chối.');
+    } catch (error) {
+      console.error('Reject cancellation error:', error);
+      showError('Có lỗi xảy ra khi từ chối yêu cầu hủy. Vui lòng thử lại.');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Quản lý đặt phòng</h1>
+          <p className="text-gray-600">Quản lý tất cả các đặt phòng của khách sạn</p>
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            className=""
+            variant={viewMode === "bookings" ? "default" : "outline"}
+            size="default"
+            onClick={() => setViewMode("bookings")}
+          >
+            Đặt phòng
+          </Button>
+          <Button
+            className=""
+            variant={viewMode === "cancellations" ? "default" : "outline"}
+            size="default"
+            onClick={() => setViewMode("cancellations")}
+          >
+            Yêu cầu hủy ({cancellationRequests.filter(r => r.status === 'pending').length})
+          </Button>
+          <Button className="" variant="outline" size="default" onClick={viewMode === "bookings" ? loadBookings : loadCancellationRequests} disabled={isLoading || isCancellationLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading || isCancellationLoading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+          <Button className="" variant="default" size="default" onClick={() => console.log("Add new booking")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Đặt phòng mới
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Tìm kiếm theo mã đặt phòng, tên khách hàng hoặc tên phòng..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="confirmed">Đã xác nhận</SelectItem>
+                  <SelectItem value="pending">Chờ xử lý</SelectItem>
+                  <SelectItem value="cancelled">Đã hủy</SelectItem>
+                  <SelectItem value="completed">Đã hoàn thành</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterPaymentStatus} onValueChange={setFilterPaymentStatus}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Thanh toán" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả thanh toán</SelectItem>
+                  <SelectItem value="paid">Đã thanh toán</SelectItem>
+                  <SelectItem value="pending">Chờ thanh toán</SelectItem>
+                  <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
+                  <SelectItem value="failed">Thất bại</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button className="md:hidden" variant="outline" size="icon">
+                <Filter className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Loading State */}
+      {(isLoading || isCancellationLoading) ? (
+        <div className="flex justify-center items-center py-12">
+          <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+          <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
+        </div>
+      ) : viewMode === "bookings" ? (
+        <>
+          {/* Bookings Table */}
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="text-left p-4 font-medium text-gray-600">Mã đặt phòng</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Khách hàng</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Phòng</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Ngày</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Khách</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Tổng tiền</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Trạng thái</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Thanh toán</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Hủy phòng</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredBookings.map((booking) => (
+                      <tr key={booking._id} className="border-b hover:bg-gray-50">
+                        <td className="p-4 font-medium">#{booking._id.substring(0, 8)}</td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <div className="bg-blue-100 rounded-full w-8 h-8 flex items-center justify-center">
+                              <User className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">
+                                {typeof booking.user === 'string' ? 'Khách hàng' : (booking.user as any).username || 'Khách hàng'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {booking.email || (typeof booking.user !== 'string' ? (booking.user as any).email : '')}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <p className="font-medium">
+                            {typeof booking.room === 'string' ? 'Phòng' : (booking.room as any).name || 'Phòng'}
+                          </p>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-1 text-sm">
+                            <Calendar className="h-4 w-4 text-gray-500" />
+                            <span>{new Date(booking.checkInDate).toLocaleDateString('vi-VN')} - {new Date(booking.checkOutDate).toLocaleDateString('vi-VN')}</span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <Badge variant="secondary">{booking.adultCount + booking.childCount} khách</Badge>
+                        </td>
+                        <td className="p-4 font-medium">
+                          {formatCurrency(booking.totalPrice)}
+                        </td>
+                        <td className="p-4">
+                          {getStatusBadge(booking.status)}
+                        </td>
+                        <td className="p-4">
+                          {getPaymentStatusBadge(booking.paymentStatus)}
+                        </td>
+                        <td className="p-4">
+                          {getCancellationStatusBadge(booking.cancellationRequest)}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex gap-1">
+                            <Button
+                              className=""
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewBooking(booking._id)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {booking.status === "pending" && (
+                              <Button
+                                className=""
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleConfirmBooking(booking._id)}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {booking.status === "confirmed" && (
+                              <Button
+                                className=""
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleCancelBooking(booking._id)}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Empty State */}
+          {filteredBookings.length === 0 && (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium mb-1">Không tìm thấy đặt phòng</h3>
+                <p className="text-gray-600 mb-4">Không có đặt phòng nào phù hợp với bộ lọc hiện tại.</p>
+                <Button
+                  className=""
+                  variant="outline"
+                  size="default"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterStatus("all");
+                    setFilterPaymentStatus("all");
+                  }}
+                >
+                  Xóa bộ lọc
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Pagination */}
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-gray-600">
+              Hiển thị {filteredBookings.length} kết quả
+            </p>
+            <div className="flex gap-2">
+              <Button
+                className=""
+                variant="outline"
+                size="default"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              >
+                Trước
+              </Button>
+              <Button
+                className=""
+                variant="outline"
+                size="default"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Cancellation Requests Table */}
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="text-left p-4 font-medium text-gray-600">Mã yêu cầu</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Mã đặt phòng</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Khách hàng</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Phòng</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Lý do</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Tổng tiền</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Trạng thái</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Hoàn tiền</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Ngày tạo</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cancellationRequests
+                      .filter(request => filterStatus === "all" || request.status === filterStatus)
+                      .map((request) => (
+                        <tr key={request._id} className="border-b hover:bg-gray-50">
+                          <td className="p-4 font-medium">#{request._id.substring(0, 8)}</td>
+                          <td className="p-4">#{typeof request.booking === 'string' ? request.booking.substring(0, 8) : (request.booking as any)._id?.substring(0, 8) || 'N/A'}</td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <div className="bg-blue-100 rounded-full w-8 h-8 flex items-center justify-center">
+                                <User className="h-4 w-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">
+                                  {typeof request.user !== 'string' ? (request.user as any).username || 'Khách hàng' : 'Khách hàng'}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <p className="font-medium">
+                              {request.booking && typeof (request.booking as any).room !== 'string' ?
+                                ((request.booking as any).room as any).name || 'Phòng' :
+                                'Phòng'}
+                            </p>
+                          </td>
+                          <td className="p-4">
+                            <p className="text-sm max-w-xs truncate" title={request.reason}>
+                              {request.reason}
+                            </p>
+                          </td>
+                          <td className="p-4 font-medium">
+                            {request.booking && (request.booking as any).totalPrice ?
+                              formatCurrency((request.booking as any).totalPrice) :
+                              'N/A'}
+                          </td>
+                          <td className="p-4">
+                            {getCancellationStatusBadge(request)}
+                          </td>
+                          <td className="p-4">
+                            {request.refundStatus === 'completed' ? (
+                              <Badge className="bg-green-100 text-green-800">
+                                <Wallet className="h-3 w-3 mr-1" />
+                                Đã hoàn {formatCurrency(request.refundAmount)}
+                              </Badge>
+                            ) : request.refundStatus === 'pending' ? (
+                              <Badge className="bg-yellow-100 text-yellow-800">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Đang xử lý
+                              </Badge>
+                            ) : request.refundStatus === 'failed' ? (
+                              <Badge className="bg-red-100 text-red-800">
+                                <XCircleIcon className="h-3 w-3 mr-1" />
+                                Thất bại
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">
+                                Chưa yêu cầu
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="p-4 text-sm">
+                            {new Date(request.createdAt).toLocaleDateString('vi-VN')}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex gap-1">
+                              {request.status === 'pending' && (
+                                <>
+                                  <Button
+                                    className="bg-green-600 hover:bg-green-700"
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedCancellation(request);
+                                      setShowApproveDialog(true);
+                                    }}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    className="bg-red-600 hover:bg-red-700"
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedCancellation(request);
+                                      setShowRejectDialog(true);
+                                    }}
+                                  >
+                                    <Ban className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Empty State */}
+          {cancellationRequests.filter(request => filterStatus === "all" || request.status === filterStatus).length === 0 && (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                  <XCircleIcon className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium mb-1">Không tìm thấy yêu cầu hủy</h3>
+                <p className="text-gray-600 mb-4">Không có yêu cầu hủy phòng nào phù hợp với bộ lọc hiện tại.</p>
+                <Button
+                  className=""
+                  variant="outline"
+                  size="default"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterStatus("all");
+                    setFilterPaymentStatus("all");
+                  }}
+                >
+                  Xóa bộ lọc
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* Approve Cancellation Dialog */}
+      <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Duyệt yêu cầu hủy phòng</DialogTitle>
+          </DialogHeader>
+          {selectedCancellation && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600">Mã đặt phòng: #{typeof selectedCancellation.booking === 'string' ? selectedCancellation.booking.substring(0, 8) : (selectedCancellation.booking as any)._id?.substring(0, 8) || 'N/A'}</p>
+                <p className="text-sm text-gray-600">Lý do: {selectedCancellation.reason}</p>
+                <p className="text-sm text-gray-600">
+                  Số tiền hoàn: {selectedCancellation.booking && (selectedCancellation.booking as any).totalPrice ?
+                    formatCurrency((selectedCancellation.booking as any).totalPrice) :
+                    'N/A'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Ghi chú quản trị viên</label>
+                <Textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Nhập ghi chú (tùy chọn)"
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button className="" variant="outline" size="default" onClick={() => setShowApproveDialog(false)}>
+                  Hủy
+                </Button>
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  variant="default"
+                  size="default"
+                  onClick={() => handleApproveCancellation(selectedCancellation._id)}
+                >
+                  Duyệt và hoàn tiền
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Cancellation Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Từ chối yêu cầu hủy phòng</DialogTitle>
+          </DialogHeader>
+          {selectedCancellation && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600">Mã đặt phòng: #{typeof selectedCancellation.booking === 'string' ? selectedCancellation.booking.substring(0, 8) : (selectedCancellation.booking as any)._id?.substring(0, 8) || 'N/A'}</p>
+                <p className="text-sm text-gray-600">Lý do: {selectedCancellation.reason}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Lý do từ chối</label>
+                <Textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Nhập lý do từ chối"
+                  className="mt-1"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button className="" variant="outline" size="default" onClick={() => setShowRejectDialog(false)}>
+                  Hủy
+                </Button>
+                <Button
+                  className="bg-red-600 hover:bg-red-700"
+                  variant="default"
+                  size="default"
+                  onClick={() => handleRejectCancellation(selectedCancellation._id)}
+                >
+                  Từ chối
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

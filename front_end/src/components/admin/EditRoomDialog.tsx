@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Badge } from "../ui/badge";
 import { X, Upload, Plus } from "lucide-react";
@@ -45,39 +44,40 @@ const COMMON_AMENITIES = [
 
 export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoomDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [selectedImages, setSelectedImages] = useState([] as File[]);
   const [newAmenity, setNewAmenity] = useState('');
   
-  const [formData, setFormData] = useState<Partial<UpdateRoomData>>({
+  const [formData, setFormData] = useState({
+    id: '',
     name: '',
     type: 'single',
     bedType: 'single',
     description: '',
     price: 0,
     capacity: 1,
-    amenities: [],
+    amenities: [] as string[],
     status: 'available'
-  });
+  } as UpdateRoomData);
 
   // Load room data when dialog opens
   useEffect(() => {
     if (room && open) {
       setFormData({
-        id: room._id || room.id,
+        id: room._id,
         name: room.name,
         type: room.type,
         bedType: room.bedType,
-        description: room.description,
+        description: room.description || '',
         price: room.price,
         capacity: room.capacity,
         amenities: room.amenities || [],
         status: room.status
-      });
+      } as UpdateRoomData);
       setSelectedImages([]);
     }
   }, [room, open]);
 
-  const handleInputChange = (field: keyof UpdateRoomData, value: any) => {
+  const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -91,13 +91,13 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
   };
 
   const addAmenity = (amenity: string) => {
-    if (amenity && !formData.amenities?.includes(amenity)) {
-      handleInputChange('amenities', [...(formData.amenities || []), amenity]);
+    if (amenity && !formData.amenities.includes(amenity)) {
+      handleInputChange('amenities', [...formData.amenities, amenity]);
     }
   };
 
   const removeAmenity = (amenity: string) => {
-    handleInputChange('amenities', formData.amenities?.filter(a => a !== amenity) || []);
+    handleInputChange('amenities', formData.amenities.filter(a => a !== amenity));
   };
 
   const handleAddCustomAmenity = () => {
@@ -119,7 +119,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
 
       const updateData: UpdateRoomData = {
         ...formData,
-        id: formData.id!
+        id: formData.id
       };
 
       // Add new images if selected
@@ -127,10 +127,14 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
         updateData.images = selectedImages;
       }
 
-      await roomService.updateRoom(updateData);
+      const result = await roomService.updateRoom(updateData);
       
-      onSuccess();
-      onOpenChange(false);
+      if (result) {
+        onSuccess();
+        onOpenChange(false);
+      } else {
+        alert('Có lỗi xảy ra khi cập nhật phòng. Vui lòng thử lại.');
+      }
     } catch (error) {
       console.error('Update room error:', error);
       alert('Có lỗi xảy ra khi cập nhật phòng. Vui lòng thử lại.');
@@ -153,9 +157,9 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Tên phòng *</Label>
+                <Label htmlFor="edit-name">Tên phòng *</Label>
                 <Input
-                  id="name"
+                  id="edit-name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   placeholder="VD: Phòng Deluxe Ocean View"
@@ -163,7 +167,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="type">Loại phòng *</Label>
+                <Label htmlFor="edit-type">Loại phòng *</Label>
                 <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -181,7 +185,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="bedType">Loại giường *</Label>
+                <Label htmlFor="edit-bedType">Loại giường *</Label>
                 <Select value={formData.bedType} onValueChange={(value) => handleInputChange('bedType', value)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -197,9 +201,9 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="capacity">Sức chứa *</Label>
+                <Label htmlFor="edit-capacity">Sức chứa *</Label>
                 <Input
-                  id="capacity"
+                  id="edit-capacity"
                   type="number"
                   min="1"
                   value={formData.capacity}
@@ -208,9 +212,9 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="price">Giá phòng (VNĐ/đêm) *</Label>
+                <Label htmlFor="edit-price">Giá phòng (VNĐ/đêm) *</Label>
                 <Input
-                  id="price"
+                  id="edit-price"
                   type="number"
                   min="0"
                   value={formData.price}
@@ -221,7 +225,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status">Trạng thái</Label>
+              <Label htmlFor="edit-status">Trạng thái</Label>
               <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -237,12 +241,13 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Mô tả phòng</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
+              <Label htmlFor="edit-description">Mô tả phòng</Label>
+              <textarea
+                id="edit-description"
+                value={formData.description || ''}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Mô tả chi tiết về phòng..."
+                className="w-full p-2 border border-gray-300 rounded-md"
                 rows={3}
               />
             </div>
@@ -255,7 +260,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   {room.images.map((image, index) => (
                     <div key={index} className="relative">
                       <img
-                        src={`${'http://localhost:3000'}${image}`}
+                        src={`${'http://localhost:5000'}${image}`}
                         alt={`Room ${index + 1}`}
                         className="w-full h-20 object-cover rounded"
                       />
@@ -275,10 +280,10 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   accept="image/*"
                   onChange={handleImageSelect}
                   className="hidden"
-                  id="room-images"
+                  id="edit-room-images"
                 />
                 <label
-                  htmlFor="room-images"
+                  htmlFor="edit-room-images"
                   className="flex flex-col items-center justify-center cursor-pointer"
                 >
                   <Upload className="h-8 w-8 text-gray-400 mb-2" />
@@ -297,9 +302,9 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                         className="w-full h-20 object-cover rounded"
                       />
                       <Button
+                        className=""
                         size="sm"
                         variant="destructive"
-                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
                         onClick={() => removeImage(index)}
                       >
                         <X className="h-3 w-3" />
@@ -320,16 +325,16 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   <Button
                     key={amenity}
                     type="button"
-                    variant={formData.amenities?.includes(amenity) ? "default" : "outline"}
+                    className=""
+                    variant={formData.amenities.includes(amenity) ? "default" : "outline"}
                     size="sm"
                     onClick={() => {
-                      if (formData.amenities?.includes(amenity)) {
+                      if (formData.amenities.includes(amenity)) {
                         removeAmenity(amenity);
                       } else {
                         addAmenity(amenity);
                       }
                     }}
-                    className="justify-start text-xs"
                   >
                     {amenity}
                   </Button>
@@ -344,13 +349,19 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   onChange={(e) => setNewAmenity(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddCustomAmenity()}
                 />
-                <Button type="button" onClick={handleAddCustomAmenity}>
+                <Button 
+                  className=""
+                  type="button" 
+                  variant="default"
+                  size="default"
+                  onClick={handleAddCustomAmenity}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
               
               {/* Selected amenities */}
-              {formData.amenities && formData.amenities.length > 0 && (
+              {formData.amenities.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {formData.amenities.map(amenity => (
                     <Badge key={amenity} variant="secondary" className="cursor-pointer">
@@ -367,10 +378,21 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-2 pt-4 sticky bottom-0 bg-white pt-4 border-t">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Button 
+                className=""
+                variant="outline" 
+                size="default"
+                onClick={() => onOpenChange(false)}
+              >
                 Hủy
               </Button>
-              <Button onClick={handleSubmit} disabled={isLoading}>
+              <Button 
+                className=""
+                variant="default"
+                size="default"
+                onClick={handleSubmit} 
+                disabled={isLoading}
+              >
                 {isLoading ? 'Đang cập nhật...' : 'Cập nhật phòng'}
               </Button>
             </div>
@@ -380,8 +402,3 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
     </Dialog>
   );
 }
-
-
-
-
-

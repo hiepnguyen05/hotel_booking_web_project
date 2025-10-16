@@ -24,6 +24,18 @@ class ReviewController {
             return formatResponse(res, 400, error.message);
         }
     }
+
+    async hasUserReviewedBooking(req, res) {
+        try {
+            const userId = req.user._id;
+            const { bookingId } = req.params;
+            const hasReviewed = await ReviewService.hasUserReviewedBooking(userId, bookingId);
+            return formatResponse(res, 200, "Check review status successfully", { hasReviewed });
+        } catch (error) {
+            console.error("Check review status error:", error);
+            return formatResponse(res, 400, error.message);
+        }
+    }
 }
 
 module.exports = new ReviewController();

@@ -300,6 +300,7 @@ class RoomController {
             );
 
             console.log('Rooms found:', rooms.length);
+            // Trả về mảng rooms trực tiếp thay vì bọc trong object
             return formatResponse(res, 200, "Available rooms retrieved successfully", rooms);
         } catch (error) {
             console.error('=== SEARCH AVAILABLE ROOMS ERROR ===');

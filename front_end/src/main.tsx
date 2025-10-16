@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { ToastProvider } from './contexts/ToastContext';
 
 // Log access information when the app starts
 console.log('[Frontend Access Log] App loaded at:', new Date().toISOString());
@@ -16,4 +17,8 @@ if (typeof navigator !== 'undefined') {
   console.log('[Frontend Access Log] Language:', navigator.language);
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <ToastProvider>
+    <App />
+  </ToastProvider>
+);

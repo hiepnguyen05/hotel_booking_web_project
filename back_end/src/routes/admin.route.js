@@ -3,6 +3,8 @@ const router = express.Router();
 const {
     getAllUsers,
     updateUserRole,
+    createAdminUser,
+    updateUserInfo,
     deleteUser,
     lockUser,
     unlockUser,
@@ -16,6 +18,12 @@ const { authenticate, authorizeAdmin } = require("../middlewares/auth.middleware
 
 // Lấy tất cả user
 router.get("/users", authenticate, authorizeAdmin, getAllUsers);
+
+// Tạo tài khoản admin mới
+router.post("/users", authenticate, authorizeAdmin, createAdminUser);
+
+// Cập nhật thông tin người dùng
+router.put("/users/:id", authenticate, authorizeAdmin, updateUserInfo);
 
 // Cập nhật vai trò user
 router.put("/users/:id/role", authenticate, authorizeAdmin, updateUserRole);

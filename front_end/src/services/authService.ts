@@ -67,7 +67,13 @@ class AuthService {
       
       // Decode JWT token to get user info
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        
+        const payload = JSON.parse(jsonPayload);
         
         // Check if token is expired
         if (payload.exp && payload.exp < Date.now() / 1000) {
@@ -77,7 +83,14 @@ class AuthService {
             return null;
           }
           // Decode new token
-          const newPayload = JSON.parse(atob(newToken.split('.')[1]));
+          const newBase64Url = newToken.split('.')[1];
+          const newBase64 = newBase64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const newJsonPayload = decodeURIComponent(atob(newBase64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          
+          const newPayload = JSON.parse(newJsonPayload);
+          
           // Validate required fields from refreshed token
           if (!newPayload.id || !newPayload.username || !newPayload.email) {
             apiClient.setToken(null);

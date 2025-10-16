@@ -19,7 +19,7 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { roomService, Room } from "../services/roomService";
+import { roomService, SearchRoomResult } from "../services/roomService";
 
 // Get the API base URL from environment variables or use default
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -36,18 +36,24 @@ interface RoomSearchResultsProps {
 }
 
 export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSearchResultsProps) {
-  const [rooms, setRooms] = useState([] as Room[]);
+  const [rooms, setRooms] = useState([] as SearchRoomResult[]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null as string | null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Don't search if searchParams is null or undefined
+    if (!searchParams) {
+      setIsLoading(false);
+      return;
+    }
+
     const searchRooms = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        const availableRooms = await roomService.searchAvailableRooms({
+        const result = await roomService.searchAvailableRooms({
           checkInDate: searchParams.checkIn,
           checkOutDate: searchParams.checkOut,
           adultCount: searchParams.adults,
@@ -55,15 +61,22 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
           roomCount: 10 // Set a reasonable default to get multiple rooms
         });
 
-        setRooms(availableRooms);
-
-        // Log kết quả tìm kiếm để debug
-        console.log('Found rooms:', availableRooms.length, availableRooms);
+        // Ensure result and result.rooms are defined before setting state
+        if (result && Array.isArray(result.rooms)) {
+          console.log('Setting rooms state with:', result.rooms);
+          setRooms(result.rooms);
+          console.log('Found rooms:', result.rooms.length, result.rooms);
+        } else {
+          console.log('No rooms found or invalid response format. Result:', result);
+          setRooms([]);
+        }
       } catch (err) {
         // Hiển thị thông báo lỗi cụ thể nếu có
         const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra khi tìm kiếm phòng';
         setError(errorMessage);
         console.error('Search rooms error:', err);
+        // Set rooms to empty array on error
+        setRooms([]);
       } finally {
         setIsLoading(false);
       }
@@ -85,6 +98,11 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
   };
 
   const getFullImageUrl = (imagePath: string) => {
+    // If no image path, return placeholder
+    if (!imagePath) {
+      return 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHJvb218ZW58MXx8fHwxNzU5MjI5MDY0fDA&ixlib=rb-4.1.0&q=80&w=1080';
+    }
+    
     // If the image path is already a full URL, return it as is
     if (imagePath.startsWith('http')) {
       return imagePath;
@@ -92,8 +110,13 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
     
     // If it's a relative path that starts with /uploads, serve it from the base URL without /api
     if (imagePath.startsWith('/uploads')) {
+      // Handle case where API_BASE_URL might end with /api or not
       const baseUrlWithoutApi = API_BASE_URL.replace('/api', '');
-      return `${baseUrlWithoutApi}${imagePath}`;
+      // Remove trailing slash if exists and ensure no double slashes
+      const cleanBaseUrl = baseUrlWithoutApi.endsWith('/') ? baseUrlWithoutApi.slice(0, -1) : baseUrlWithoutApi;
+      // Ensure imagePath starts with /
+      const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+      return `${cleanBaseUrl}${cleanPath}`;
     }
     
     // For other relative paths, prepend the API base URL
@@ -111,8 +134,6 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const nights = calculateNights();
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -123,6 +144,16 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
       </div>
     );
   }
+
+  // If searchParams is null or undefined, don't render anything
+  if (!searchParams) {
+    return null;
+  }
+
+  // Calculate nights only after we know searchParams exists
+  const nights = calculateNights();
+
+  console.log('Rendering RoomSearchResults with rooms:', rooms);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -143,8 +174,8 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Kết quả tìm kiếm</h1>
               <p className="text-gray-600 mt-1">
-                {rooms.length} phòng trống từ {new Date(searchParams.checkIn).toLocaleDateString('vi-VN')}
-                đến {new Date(searchParams.checkOut).toLocaleDateString('vi-VN')}
+                {rooms ? rooms.length : 0} phòng trống từ {searchParams?.checkIn ? new Date(searchParams.checkIn).toLocaleDateString('vi-VN') : ''}
+                đến {searchParams?.checkOut ? new Date(searchParams.checkOut).toLocaleDateString('vi-VN') : ''}
               </p>
             </div>
 
@@ -156,7 +187,7 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
                 </div>
                 <div className="flex items-center">
                   <Users className="h-4 w-4 mr-1" />
-                  {searchParams.adults + searchParams.children} khách
+                  {searchParams ? (searchParams.adults + (searchParams.children || 0)) : 0} khách
                 </div>
               </div>
             </div>
@@ -166,6 +197,7 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
 
       {/* Results */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {console.log('Rendering results section. Error:', error, 'Rooms:', rooms, 'Rooms length:', rooms?.length)}
         {error ? (
           <Card>
             <CardContent className="text-center py-12">
@@ -175,7 +207,7 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
               </Button>
             </CardContent>
           </Card>
-        ) : rooms.length === 0 ? (
+        ) : rooms && rooms.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -190,8 +222,8 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
           </Card>
         ) : (
           <div className="space-y-6">
-            {rooms.map((room) => (
-              <Card key={room.id || room._id} className="overflow-hidden">
+            {rooms && rooms.map((room) => (
+              <Card key={room._id || room.id} className="overflow-hidden">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Room Image */}
                   <div className="lg:col-span-1">
@@ -211,23 +243,23 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
                         <div className="flex items-start justify-between mb-4">
                           <div>
                             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                              {room.name}
+                              {room.name || 'Không có tên phòng'}
                             </h3>
                             <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
                               <div className="flex items-center">
                                 <Users className="h-4 w-4 mr-1" />
-                                {room.capacity}
+                                {room.capacity || 0}
                               </div>
                               <div className="flex items-center">
                                 <Bed className="h-4 w-4 mr-1" />
-                                {room.size}
+                                {room.size || 'Không xác định'}
                               </div>
                             </div>
                           </div>
 
                           <div className="text-right">
                             <div className="text-2xl font-bold text-primary">
-                              {room.price.toLocaleString('vi-VN')}₫
+                              {room.price ? room.price.toLocaleString('vi-VN') : 0}₫
                             </div>
                             <div className="text-sm text-gray-600">mỗi đêm</div>
                           </div>
@@ -243,7 +275,7 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
                                 <span className="ml-1 capitalize">{amenity}</span>
                               </Badge>
                             ))}
-                            {room.amenities?.length > 6 && (
+                            {room.amenities && room.amenities.length > 6 && (
                               <Badge variant="outline">
                                 +{room.amenities.length - 6} tiện nghi khác
                               </Badge>
@@ -264,9 +296,17 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
                             // Debug: log the room object to see its properties
                             console.log('Room object:', room);
                             // Use id or _id depending on which is available
-                            const roomId = room.id || room._id;
+                            const roomId = room._id || room.id;
                             if (roomId) {
-                              navigate(`/rooms/${roomId}`);
+                              // Pass search parameters through router state
+                              navigate(`/rooms/${roomId}`, {
+                                state: {
+                                  checkIn: searchParams.checkIn,
+                                  checkOut: searchParams.checkOut,
+                                  adults: searchParams.adults,
+                                  children: searchParams.children
+                                }
+                              });
                             } else {
                               console.error('Room ID is missing:', room);
                             }
@@ -280,7 +320,7 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
                           className="flex-1"
                           onClick={() => {
                             // Use id or _id depending on which is available
-                            const roomId = room.id || room._id;
+                            const roomId = room._id || room.id;
                             if (roomId) {
                               // Pass search parameters through router state
                               navigate(`/user/booking/${roomId}`, {

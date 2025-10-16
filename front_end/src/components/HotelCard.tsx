@@ -40,8 +40,19 @@ export function HotelCard({ hotel }: HotelCardProps) {
     if (imagePath.startsWith('http')) {
       return imagePath;
     }
-    
-    // If it's a relative path, prepend the API base URL
+
+    // If it's a relative path that starts with /uploads, serve it from the base URL without /api
+    if (imagePath.startsWith('/uploads')) {
+      // Handle case where API_BASE_URL might end with /api or not
+      const baseUrlWithoutApi = API_BASE_URL.replace('/api', '');
+      // Remove trailing slash if exists and ensure no double slashes
+      const cleanBaseUrl = baseUrlWithoutApi.endsWith('/') ? baseUrlWithoutApi.slice(0, -1) : baseUrlWithoutApi;
+      // Ensure imagePath starts with /
+      const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+      return `${cleanBaseUrl}${cleanPath}`;
+    }
+
+    // For other relative paths, prepend the API base URL
     // Remove leading slash if it exists to avoid double slashes
     const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
     return `${API_BASE_URL}/${cleanPath}`;
@@ -61,7 +72,7 @@ export function HotelCard({ hotel }: HotelCardProps) {
           </Badge>
         )}
       </div>
-      
+
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <h3 className="font-semibold text-lg">{hotel.name}</h3>
@@ -70,12 +81,12 @@ export function HotelCard({ hotel }: HotelCardProps) {
             <span className="ml-1 text-sm">{hotel.rating}</span>
           </div>
         </div>
-        
+
         <div className="flex items-center text-gray-600 mb-3">
           <MapPin className="h-4 w-4 mr-1" />
           <span className="text-sm">{hotel.location}</span>
         </div>
-        
+
         <div className="flex items-center space-x-2 mb-3">
           {hotel.amenities.map((amenity, index) => (
             <div key={index} className="flex items-center text-gray-500">
@@ -84,7 +95,7 @@ export function HotelCard({ hotel }: HotelCardProps) {
             </div>
           ))}
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="text-2xl font-bold text-primary">
@@ -98,8 +109,8 @@ export function HotelCard({ hotel }: HotelCardProps) {
             <span className="text-sm text-gray-600">/đêm</span>
           </div>
         </div>
-        
-        <Button className="w-full mt-4">
+
+        <Button variant="default" size="default" className="w-full mt-4">
           Xem chi tiết
         </Button>
       </CardContent>

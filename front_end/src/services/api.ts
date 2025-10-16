@@ -29,26 +29,42 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
+    const token = this.getToken();
+    console.log('[API CLIENT] Making request to:', url);
+    console.log('[API CLIENT] Auth token present:', !!token);
+    
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
-        ...(this.getToken() && { Authorization: `Bearer ${this.getToken()}` }),
+        ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
     };
+    
+    console.log('[API CLIENT] Request config:', {
+      method: config.method,
+      headers: config.headers
+    });
 
     try {
       const response = await fetch(url, config);
+      console.log('[API CLIENT] Response received:', {
+        status: response.status,
+        statusText: response.statusText
+      });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('[API CLIENT] Response error data:', errorData);
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       const jsonData = await response.json();
+      console.log('[API CLIENT] Response JSON data:', jsonData);
       return jsonData;
     } catch (error) {
+      console.error('[API CLIENT] Request error:', error);
       throw error;
     }
   }

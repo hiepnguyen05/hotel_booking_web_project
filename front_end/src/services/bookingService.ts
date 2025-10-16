@@ -116,10 +116,24 @@ class BookingService {
   async getUserBookings(userId?: string): Promise<Booking[]> {
     try {
       // Nếu có userId, gọi endpoint admin để lấy bookings của user cụ thể
-      // Nếu không có userId, gọi endpoint /bookings để lấy bookings của user hiện tại (xác thực qua token)
-      const endpoint = userId ? `/admin/bookings?userId=${userId}` : '/bookings';
+      // Nếu không có userId, gọi endpoint /bookings/user để lấy bookings của user hiện tại (xác thực qua token)
+      const endpoint = userId ? `/admin/bookings?userId=${userId}` : '/bookings/user';
+      console.log('Fetching user bookings from endpoint:', endpoint);
       const response = await apiClient.get<{ status: number; message: string; data: Booking[] }>(endpoint);
-      return response.status === 200 ? response.data : [];
+      console.log('Booking service response:', response);
+
+      if (response.status === 200) {
+        console.log('Booking data:', response.data);
+        // Map items to ensure id field is present (similar to getAllBookings)
+        const bookingsWithId = response.data.map(booking => ({
+          ...booking,
+          id: booking.id || booking._id
+        }));
+        return bookingsWithId;
+      } else {
+        console.error('Failed to fetch bookings, status:', response.status);
+        return [];
+      }
     } catch (error) {
       console.error('Get user bookings error:', error);
       return [];
@@ -129,7 +143,7 @@ class BookingService {
   async getAllBookings(params?: BookingSearchParams): Promise<{ bookings: Booking[]; total: number; page: number; totalPages: number }> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       if (params) {
         Object.entries(params).forEach(([key, value]) => {
           if (value !== undefined && value !== null) {
@@ -139,18 +153,18 @@ class BookingService {
       }
 
       const endpoint = `/admin/bookings${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      
+
       // Update to match the actual backend response format
-      const response = await apiClient.get<{ 
-        items: Booking[]; 
-        pagination: { 
-          page: number; 
-          limit: number; 
-          total: number; 
-          pages: number; 
-        } 
+      const response = await apiClient.get<{
+        items: Booking[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          pages: number;
+        }
       }>(endpoint);
-      
+
       // Transform the response to match expected format
       if (response.items) {
         // Map items to ensure id field is present
@@ -158,7 +172,7 @@ class BookingService {
           ...booking,
           id: booking.id || booking._id
         }));
-        
+
         return {
           bookings: bookingsWithId,
           total: response.pagination.total,
@@ -206,14 +220,14 @@ class BookingService {
 
   async processPayment(paymentData: PaymentData): Promise<{ success: boolean; transactionId?: string }> {
     try {
-      const response = await apiClient.post<{ 
-        status: number; 
-        message: string; 
-        data: { transactionId: string } 
+      const response = await apiClient.post<{
+        status: number;
+        message: string;
+        data: { transactionId: string }
       }>(`/admin/bookings/${paymentData.bookingId}/payment`, {
         paymentMethod: paymentData.paymentMethod
       });
-      
+
       return {
         success: response.status === 200,
         transactionId: response.data?.transactionId
@@ -229,22 +243,30 @@ class BookingService {
    */
   async createCancellationRequest(bookingId: string, reason: string): Promise<CancellationRequest> {
     try {
-      const response = await apiClient.post<{ 
-        status: number; 
-        message: string; 
-        data: CancellationRequest 
+      console.log('Creating cancellation request with:', { bookingId, reason });
+
+      const response = await apiClient.post<{
+        status: number;
+        message: string;
+        data: CancellationRequest
       }>('/cancellation-requests', {
         bookingId,
         reason
       });
-      
+
+      console.log('Cancellation request response:', response);
+
       if (response.status === 201) {
         return response.data;
       } else {
         throw new Error(response.message || 'Failed to create cancellation request');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create cancellation request error:', error);
+      if (error.response) {
+        console.error('Error response:', error.response);
+        throw new Error(error.response.data?.message || error.response.statusText || 'Failed to create cancellation request');
+      }
       throw error;
     }
   }
@@ -254,13 +276,21 @@ class BookingService {
    */
   async getAllCancellationRequests(): Promise<CancellationRequest[]> {
     try {
-      const response = await apiClient.get<{ 
-        status: number; 
-        message: string; 
-        data: CancellationRequest[] 
-      }>('/admin/cancellation-requests');
-      
-      return response.status === 200 ? response.data : [];
+      console.log('Calling API: /cancellation-requests/admin');
+      const response = await apiClient.get<{
+        status: number;
+        message: string;
+        data: CancellationRequest[]
+      }>('/cancellation-requests/admin');
+
+      console.log('API Response:', response);
+      if (response.status === 200) {
+        console.log('Cancellation requests data:', response.data);
+        return response.data;
+      } else {
+        console.error('API Error:', response.message);
+        return [];
+      }
     } catch (error) {
       console.error('Get cancellation requests error:', error);
       return [];
@@ -272,15 +302,15 @@ class BookingService {
    */
   async updateCancellationRequestStatus(requestId: string, status: 'approved' | 'rejected', adminNotes?: string): Promise<CancellationRequest> {
     try {
-      const response = await apiClient.put<{ 
-        status: number; 
-        message: string; 
-        data: CancellationRequest 
-      }>(`/admin/cancellation-requests/${requestId}/status`, {
+      const response = await apiClient.put<{
+        status: number;
+        message: string;
+        data: CancellationRequest
+      }>(`/cancellation-requests/${requestId}/status`, {
         status,
         adminNotes
       });
-      
+
       if (response.status === 200) {
         return response.data;
       } else {
@@ -297,12 +327,12 @@ class BookingService {
    */
   async processRefund(requestId: string): Promise<CancellationRequest> {
     try {
-      const response = await apiClient.post<{ 
-        status: number; 
-        message: string; 
-        data: CancellationRequest 
-      }>(`/admin/cancellation-requests/${requestId}/refund`);
-      
+      const response = await apiClient.post<{
+        status: number;
+        message: string;
+        data: CancellationRequest
+      }>(`/cancellation-requests/${requestId}/refund`);
+
       if (response.status === 200) {
         return response.data;
       } else {
@@ -321,7 +351,7 @@ class BookingService {
     try {
       // Sử dụng endpoint mới để lấy thông tin booking
       const response: any = await apiClient.get(`/bookings/${bookingId}`);
-      
+
       // Kiểm tra theo đúng format response của backend
       if (response.status === 200) {
         return {
@@ -348,25 +378,86 @@ class BookingService {
    */
   async createMoMoPayment(paymentData: MoMoPaymentData): Promise<any> {
     try {
+      console.log('[BOOKING SERVICE] Creating MoMo payment with data:', paymentData);
+
       // Call backend API to create MoMo payment
       const response = await apiClient.post<{ status: number; message: string; data?: { payUrl: string } }>(
-        `/bookings/${paymentData.bookingId}/momo-payment`, 
+        `/bookings/${paymentData.bookingId}/momo-payment`,
         {
           returnUrl: paymentData.returnUrl
         }
       );
-      
+
+      console.log('[BOOKING SERVICE] MoMo payment response:', response);
+
       // Return the payUrl to the caller
       return {
         success: response.status === 200,
         data: response.data
       };
     } catch (error: any) {
-      console.error('Create MoMo payment error:', error);
+      console.error('[BOOKING SERVICE] Create MoMo payment error:', error);
       return {
         success: false,
         error: error.message || 'Failed to create MoMo payment'
       };
+    }
+  }
+
+  /**
+   * Test MoMo payment connection
+   */
+  async testMoMoPayment(): Promise<any> {
+    try {
+      console.log('[BOOKING SERVICE] Testing MoMo payment connection');
+
+      // Call backend API test route
+      const response = await apiClient.post<{ status: number; message: string; data?: { payUrl: string } }>(
+        `/bookings/test-momo-payment`,
+        {
+          test: true
+        }
+      );
+
+      console.log('[BOOKING SERVICE] Test MoMo payment response:', response);
+
+      // Return the response
+      return {
+        success: response.status === 200,
+        data: response.data
+      };
+    } catch (error: any) {
+      console.error('[BOOKING SERVICE] Test MoMo payment error:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to test MoMo payment'
+      };
+    }
+  }
+
+  /**
+   * Get completed bookings for user
+   */
+  async getCompletedBookings(): Promise<Booking[]> {
+    try {
+      console.log('Calling API: /bookings/user/completed');
+      const response = await apiClient.get<{
+        status: number;
+        message: string;
+        data: Booking[]
+      }>('/bookings/user/completed');
+
+      console.log('API Response:', response);
+      if (response.status === 200) {
+        console.log('Completed bookings data:', response.data);
+        return response.data;
+      } else {
+        console.error('API Error:', response.message);
+        return [];
+      }
+    } catch (error) {
+      console.error('Get completed bookings error:', error);
+      return [];
     }
   }
 
@@ -380,9 +471,9 @@ class BookingService {
     monthlyRevenue: { year: number; month: number; revenue: number; count: number }[];
   }> {
     try {
-      const response = await apiClient.get<{ 
-        status: number; 
-        message: string; 
+      const response = await apiClient.get<{
+        status: number;
+        message: string;
         data: {
           totalBookings: number;
           confirmedBookings: number;
@@ -393,7 +484,7 @@ class BookingService {
           monthlyRevenue: { year: number; month: number; revenue: number; count: number }[];
         }
       }>('/admin/bookings/stats');
-      
+
       return response.status === 200 ? response.data : {
         totalBookings: 0,
         confirmedBookings: 0,

@@ -2,12 +2,53 @@ const mongoose = require("mongoose");
 const User = require("../models/user.model");
 const Booking = require("../models/booking.model");
 const CancellationRequest = require("../models/cancellationRequest.model");
+const bcrypt = require("bcryptjs");
 
-// Lấy danh sách tất cả user
+// Lấy danh sách tất cả user với hỗ trợ phân trang và sắp xếp
 const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find().select("-password");
-        res.json(users);
+        const { page = 1, limit = 10, search, role, status, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+        
+        // Xây dựng bộ lọc
+        const filter = {};
+        if (search) {
+            filter.$or = [
+                { username: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+        if (role && role !== 'all') {
+            filter.role = role;
+        }
+        if (status && status !== 'all') {
+            filter.isLocked = status === 'locked';
+        }
+
+        // Xây dựng sắp xếp
+        const sort = {};
+        sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+        const skip = (Number(page) - 1) * Number(limit);
+        
+        // Lấy danh sách người dùng với phân trang và sắp xếp
+        const [users, total] = await Promise.all([
+            User.find(filter)
+                .select("-password")
+                .sort(sort)
+                .skip(skip)
+                .limit(Number(limit)),
+            User.countDocuments(filter)
+        ]);
+
+        res.json({
+            users,
+            pagination: {
+                page: Number(page),
+                limit: Number(limit),
+                total,
+                pages: Math.ceil(total / Number(limit))
+            }
+        });
     } catch (err) {
         res.status(500).json({ message: "Server error" });
     }
@@ -33,6 +74,102 @@ const updateUserRole = async (req, res) => {
 
         res.json(updatedUser);
     } catch (err) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Tạo tài khoản admin mới
+const createAdminUser = async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+
+        // Kiểm tra dữ liệu đầu vào
+        if (!username || !email || !password) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+        
+        if (password.length < 6) {
+            return res.status(400).json({ message: "Password must be at least 6 characters" });
+        }
+
+        // Kiểm tra username hoặc email đã tồn tại
+        const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+        if (existingUser) {
+            return res.status(400).json({ message: "Username or Email already exists" });
+        }
+
+        // Mã hóa mật khẩu
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Tạo user mới với vai trò admin
+        const newAdmin = new User({
+            username,
+            email,
+            password: hashedPassword,
+            role: "admin",
+            isLocked: false
+        });
+
+        await newAdmin.save();
+
+        // Trả về user đã tạo (bỏ password)
+        const userResponse = {
+            _id: newAdmin._id,
+            username: newAdmin.username,
+            email: newAdmin.email,
+            role: newAdmin.role,
+            isLocked: newAdmin.isLocked,
+            createdAt: newAdmin.createdAt,
+            updatedAt: newAdmin.updatedAt
+        };
+
+        res.status(201).json(userResponse);
+    } catch (err) {
+        console.error("Create admin user error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Cập nhật thông tin người dùng
+const updateUserInfo = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { username, email } = req.body;
+
+        // Kiểm tra dữ liệu đầu vào
+        if (!username || !email) {
+            return res.status(400).json({ message: "Username and email are required" });
+        }
+
+        // Kiểm tra xem user có tồn tại không
+        const existingUser = await User.findById(id);
+        if (!existingUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Kiểm tra xem username hoặc email đã tồn tại chưa (ngoại trừ user hiện tại)
+        const duplicateUser = await User.findOne({
+            $or: [
+                { username: username },
+                { email: email }
+            ],
+            _id: { $ne: id }
+        });
+
+        if (duplicateUser) {
+            return res.status(400).json({ message: "Username or Email already exists" });
+        }
+
+        // Cập nhật thông tin người dùng
+        const updatedUser = await User.findByIdAndUpdate(
+            id,
+            { username, email },
+            { new: true }
+        ).select("-password");
+
+        res.json(updatedUser);
+    } catch (err) {
+        console.error("Update user info error:", err);
         res.status(500).json({ message: "Server error" });
     }
 };
@@ -313,6 +450,8 @@ const processBookingPayment = async (req, res) => {
 module.exports = {
     getAllUsers,
     updateUserRole,
+    createAdminUser,
+    updateUserInfo,
     deleteUser,
     lockUser,
     unlockUser,

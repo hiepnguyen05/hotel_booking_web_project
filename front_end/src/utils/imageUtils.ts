@@ -11,12 +11,19 @@ export function getFullImageUrl(imagePath: string): string {
   if (imagePath.startsWith('http')) {
     return imagePath;
   }
-  
+
+  // If imagePath is a relative path starting with /uploads, prepend base URL without /api
+  if (imagePath.startsWith('/uploads')) {
+    // Remove /api from the end of API_BASE_URL if it exists
+    const baseUrlWithoutApi = API_BASE_URL.replace(/\/api$/, '');
+    return `${baseUrlWithoutApi}${imagePath}`;
+  }
+
   // If imagePath is a relative path, prepend API base URL
   if (imagePath.startsWith('/')) {
     return `${API_BASE_URL}${imagePath}`;
   }
-  
+
   // If imagePath is a relative path without leading slash, add it
   return `${API_BASE_URL}/${imagePath}`;
 }
