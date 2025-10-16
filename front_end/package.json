@@ -67,7 +67,7 @@
     "type-check": "tsc --noEmit",
     "ngrok:frontend": "ngrok http 3000",
     "clean-install": "node scripts/clean-install.js",
-    "vercel-build": "vite build"
+    "vercel-build": "node vercel-build.js"
   },
   "browserslist": {
     "production": [
