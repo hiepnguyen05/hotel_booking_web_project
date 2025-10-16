@@ -19,7 +19,7 @@ import { BookingPage } from '../features/booking/pages/BookingPage';
 import { PaymentPage } from '../features/booking/pages/PaymentPage';
 import { PaymentResultPage } from '../features/booking/pages/PaymentResultPage';
 import { UserAccount } from '../pages/User/UserAccount';
-import { BookingDetailPage } from '../pages/user/BookingDetailPage';
+import { BookingDetailPage } from '../pages/User/BookingDetailPage';
 import { BookingFlow } from '../pages/User/BookingFlow';
 import { MoMoPaymentPage } from '../features/booking/pages/MoMoPaymentPage';
 import { BookingSuccess } from '../pages/User/BookingSuccess';
