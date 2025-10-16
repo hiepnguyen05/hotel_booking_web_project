@@ -60,14 +60,13 @@
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "dev": "node scripts/showNetworkInfo.js && vite",
-    "build": "node vite-build.js",
+    "dev": "vite",
+    "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
     "ngrok:frontend": "ngrok http 3000",
-    "clean-install": "node scripts/clean-install.js",
-    "vercel-build": "node vite-build.js"
+    "clean-install": "node scripts/clean-install.js"
   },
   "browserslist": {
     "production": [
