@@ -50,14 +50,14 @@
     "sonner": "^2.0.3",
     "tailwind-merge": "*",
     "vaul": "^1.1.2",
+    "vite": "^6.3.5",
     "zod": "^4.1.11",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@vitejs/plugin-react-swc": "^3.10.2",
-    "typescript": "^5.9.3",
-    "vite": "^6.3.5"
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "dev": "node scripts/showNetworkInfo.js && vite",
@@ -66,7 +66,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit",
     "ngrok:frontend": "ngrok http 3000",
-    "clean-install": "node scripts/clean-install.js"
+    "clean-install": "node scripts/clean-install.js",
+    "vercel-build": "vite build"
   },
   "browserslist": {
     "production": [
