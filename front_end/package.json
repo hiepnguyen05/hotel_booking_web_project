@@ -60,7 +60,7 @@
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "postinstall": "node -e \"try{const fs=require('fs');const path='./node_modules/.bin/vite';if(fs.existsSync(path)){fs.chmodSync(path,0o755);console.log('Vite binary permissions fixed');}else{console.log('Vite binary not found');}}catch(e){console.log('Failed to set permissions:',e.message);}\"",
+    "postinstall": "node scripts/postinstall.js",
     "prebuild": "node -e \"try{const fs=require('fs');const path='./node_modules/.bin/vite';if(fs.existsSync(path)){fs.chmodSync(path,0o755);console.log('Vite binary permissions fixed');}else{console.log('Vite binary not found');}}catch(e){console.log('Failed to set permissions:',e.message);}\"",
     "dev": "vite",
     "build": "node scripts/build.js",
