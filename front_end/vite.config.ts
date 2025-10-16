@@ -7,7 +7,10 @@ import { networkInterfaces } from 'os';
 function getLocalIP() {
   const interfaces = networkInterfaces();
   for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
+    const ifaceArray = interfaces[name];
+    if (!ifaceArray) continue;
+    
+    for (const iface of ifaceArray) {
       // Skip internal (loopback) and IPv6 addresses
       if (iface.internal || iface.family !== 'IPv4') {
         continue;
@@ -70,7 +73,7 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
-    outDir: 'dist',
+    outDir: 'build',
   },
   server: {
     port: 3000,
