@@ -60,6 +60,7 @@
     "typescript": "^5.9.3"
   },
   "scripts": {
+    "prebuild": "chmod +x ./node_modules/.bin/vite",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
