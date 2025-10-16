@@ -50,7 +50,7 @@ export function RoomTypeCard({ room, index, onViewRoom }: RoomTypeCardProps) {
   const isOdd = index % 2 === 1;
 
   return (
-    <div 
+    <div
       ref={cardRef}
       className="flex flex-col md:flex-row gap-8 items-center opacity-0 translate-y-10 transition-all duration-700"
       style={{ flexDirection: isOdd ? 'row-reverse' : 'row' } as any}
@@ -65,14 +65,14 @@ export function RoomTypeCard({ room, index, onViewRoom }: RoomTypeCardProps) {
           />
         </div>
       </div>
-      
+
       {/* Content */}
       <div className="w-full md:w-1/2">
         <div className="h-full flex flex-col justify-center">
           <h3 className="text-3xl mb-4">
             {room.name}
           </h3>
-          
+
           <p className="text-gray-700 text-lg mb-6 leading-relaxed">
             {room.description}
           </p>

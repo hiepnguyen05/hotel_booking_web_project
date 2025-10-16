@@ -35,12 +35,12 @@ export function RoomCard({ room, onViewRoom }: RoomCardProps) {
           {room.price.toLocaleString('vi-VN')}₫/đêm
         </div>
       </div>
-      
+
       {/* Content */}
       <div className="p-4">
         <h3 className="text-xl font-bold mb-2">{room.name}</h3>
         <p className="text-gray-600 text-sm mb-4 line-clamp-2">{room.description}</p>
-        
+
         {/* Features */}
         <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
           <div className="flex items-center">
@@ -52,7 +52,7 @@ export function RoomCard({ room, onViewRoom }: RoomCardProps) {
             <span>{room.capacity} khách</span>
           </div>
         </div>
-        
+
         {/* Rating */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
@@ -61,11 +61,11 @@ export function RoomCard({ room, onViewRoom }: RoomCardProps) {
             <span className="text-gray-400 text-sm ml-1">(124)</span>
           </div>
         </div>
-        
+
         {/* Button */}
-        <Button 
-          variant="default" 
-          size="default" 
+        <Button
+          variant="default"
+          size="default"
           className="w-full"
           onClick={() => onViewRoom && onViewRoom(room.id)}
         >

@@ -11,12 +11,12 @@ export interface ImageWithFallbackProps {
   [key: string]: any;
 }
 
-export function ImageWithFallback({ 
-  src, 
-  alt, 
-  className, 
+export function ImageWithFallback({
+  src,
+  alt,
+  className,
   style,
-  ...rest 
+  ...rest
 }: ImageWithFallbackProps) {
   const [didError, setDidError] = useState(false)
 
@@ -55,13 +55,13 @@ export function ImageWithFallback({
       </div>
     </div>
   ) : (
-    <img 
-      src={src} 
-      alt={alt} 
-      className={className} 
-      style={style} 
-      {...rest} 
-      onError={handleError} 
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      style={style}
+      {...rest}
+      onError={handleError}
       onLoad={() => console.log('Image loaded successfully:', src)}
     />
   )

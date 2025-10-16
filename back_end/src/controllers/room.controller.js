@@ -56,10 +56,10 @@ class RoomController {
 
             // Kiểm tra xem phòng có được đặt trong khoảng thời gian này không
             const conflicts = await BookingService.checkAvailability(roomId, checkIn, checkOut);
-            
+
             // Nếu không có xung đột thì phòng khả dụng
             const isAvailable = conflicts.length === 0;
-            
+
             return formatResponse(res, 200, "Room availability checked", { available: isAvailable });
         } catch (error) {
             console.error('Check room availability error:', error);
@@ -212,13 +212,13 @@ class RoomController {
                 }
                 roomData.status = status;
             }
-            
+
             // Xử lý ảnh mới được upload
             if (req.files && req.files.length > 0) {
                 const newImages = req.files.map((file) => `/uploads/rooms/${file.filename}`);
                 roomData.images = newImages;
             }
-            
+
             // Xử lý ảnh cần xóa
             let imagesToDelete = [];
             if (imagesToRemove) {
@@ -236,7 +236,7 @@ class RoomController {
             if (!room) {
                 return formatResponse(res, 404, "Room not found");
             }
-            
+
             // Xóa các file ảnh khỏi hệ thống file nếu có
             if (imagesToDelete.length > 0) {
                 imagesToDelete.forEach(imagePath => {
@@ -253,7 +253,7 @@ class RoomController {
                     }
                 });
             }
-            
+
             return formatResponse(res, 200, "Room updated successfully", room);
         } catch (error) {
             return formatResponse(res, 500, error.message);
@@ -277,7 +277,7 @@ class RoomController {
             console.log('=== SEARCH AVAILABLE ROOMS CONTROLLER ===');
             console.log('Request query:', req.query);
             console.log('Request headers:', req.headers);
-            
+
             const { checkInDate, checkOutDate, adultCount, childCount, roomCount } = req.query;
 
             // Kiểm tra các trường bắt buộc

@@ -68,7 +68,7 @@ class RoomService {
                 const updatedImages = currentRoom.images.filter(
                     image => !imagesToDelete.includes(image)
                 );
-                
+
                 // Nếu có ảnh mới được thêm vào, kết hợp với ảnh còn lại
                 if (updateData.images && updateData.images.length > 0) {
                     updateData.images = [...updatedImages, ...updateData.images];
@@ -82,7 +82,7 @@ class RoomService {
             // chỉ cập nhật với ảnh mới (thay thế hoàn toàn)
             // Đây là hành vi cũ, giữ nguyên để tương thích
         }
-        
+
         return await Room.findByIdAndUpdate(roomId, updateData, { new: true });
     }
 
@@ -102,7 +102,7 @@ class RoomService {
 
         // Ensure dates are Date objects and handle timezone properly
         let checkIn, checkOut;
-        
+
         // If dates are strings without time components, treat them as date-only (no timezone conversion)
         if (typeof checkInDate === 'string' && checkInDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
             // Date-only string like '2025-10-08' - parse as date in local timezone
@@ -112,7 +112,7 @@ class RoomService {
             // Full date string or Date object
             checkIn = new Date(checkInDate);
         }
-        
+
         if (typeof checkOutDate === 'string' && checkOutDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
             // Date-only string like '2025-10-09' - parse as date in local timezone
             const [year, month, day] = checkOutDate.split('-').map(Number);
@@ -134,9 +134,9 @@ class RoomService {
         });
 
         console.log(`Found ${availableRooms.length} rooms with sufficient capacity`);
-        console.log('Available rooms before filtering:', availableRooms.map(r => ({ 
-            id: r._id, 
-            name: r.name, 
+        console.log('Available rooms before filtering:', availableRooms.map(r => ({
+            id: r._id,
+            name: r.name,
             status: r.status,
             capacity: r.capacity
         })));
@@ -157,18 +157,18 @@ class RoomService {
             // Trả về các phòng KHÔNG được đặt (isBooked phải là false)
             return !isBooked;
         });
-        
+
         console.log(`After filtering, ${filteredRooms.length} rooms remain`);
 
         // Giới hạn số lượng phòng theo roomCount
         const rooms = filteredRooms.slice(0, roomCount);
 
-        console.log(`Returning ${rooms.length} available rooms:`, rooms.map(r => ({ 
-            id: r._id, 
-            name: r.name 
+        console.log(`Returning ${rooms.length} available rooms:`, rooms.map(r => ({
+            id: r._id,
+            name: r.name
         })));
         console.log('=== END DEBUG ROOM SEARCH ===');
-        
+
         return rooms;
     }
 }

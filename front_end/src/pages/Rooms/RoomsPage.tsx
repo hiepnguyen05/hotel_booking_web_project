@@ -12,7 +12,7 @@ export function RoomsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { rooms, isLoading, error, fetchRooms } = useRoomStore();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [priceRange, setPriceRange] = useState('all');
   const [capacity, setCapacity] = useState('all');
@@ -21,16 +21,16 @@ export function RoomsPage() {
   // Get search parameters from location state when coming back from room detail
   useEffect(() => {
     if (location.state) {
-      const state = location.state as { 
+      const state = location.state as {
         searchTerm?: string;
         priceRange?: string;
         capacity?: string;
       };
-      
+
       if (state.searchTerm !== undefined) setSearchTerm(state.searchTerm);
       if (state.priceRange !== undefined) setPriceRange(state.priceRange);
       if (state.capacity !== undefined) setCapacity(state.capacity);
-      
+
       // Automatically apply filters when coming back with state
       if (state.searchTerm !== undefined || state.priceRange !== 'all' || state.capacity !== 'all') {
         // Delay slightly to ensure state is set
@@ -47,35 +47,35 @@ export function RoomsPage() {
 
   const handleSearchWithParams = (params: { searchTerm?: string; priceRange?: string; capacity?: string }) => {
     const searchParams: any = {};
-    
+
     if (params.searchTerm) searchParams.name = params.searchTerm;
-    
+
     if (params.priceRange && params.priceRange !== 'all') {
       const priceFilter = getPriceRangeFilter(params.priceRange);
       Object.assign(searchParams, priceFilter);
     }
-    
+
     if (params.capacity && params.capacity !== 'all') {
       searchParams.guests = parseInt(params.capacity);
     }
-    
+
     fetchRooms(searchParams);
   };
 
   const handleSearch = () => {
     const params: any = {};
-    
+
     if (searchTerm) params.name = searchTerm;
-    
+
     if (priceRange !== 'all') {
       const priceFilter = getPriceRangeFilter(priceRange);
       Object.assign(params, priceFilter);
     }
-    
+
     if (capacity !== 'all') {
       params.guests = parseInt(capacity);
     }
-    
+
     fetchRooms(params);
   };
 

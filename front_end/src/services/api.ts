@@ -28,11 +28,11 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const token = this.getToken();
     console.log('[API CLIENT] Making request to:', url);
     console.log('[API CLIENT] Auth token present:', !!token);
-    
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -41,7 +41,7 @@ class ApiClient {
       },
       ...options,
     };
-    
+
     console.log('[API CLIENT] Request config:', {
       method: config.method,
       headers: config.headers
@@ -53,7 +53,7 @@ class ApiClient {
         status: response.status,
         statusText: response.statusText
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('[API CLIENT] Response error data:', errorData);
@@ -98,7 +98,7 @@ class ApiClient {
   // Upload file
   async upload<T>(endpoint: string, formData: FormData, method: string = 'POST'): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const config: RequestInit = {
       method: method,
       headers: {
@@ -109,7 +109,7 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);

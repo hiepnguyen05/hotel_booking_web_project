@@ -19,7 +19,7 @@ exports.list = async (req, res) => {
         } = req.query;
 
         const filter = {};
-        
+
         // Add filters
         if (minPrice || maxPrice) {
             filter.price = {};
@@ -49,7 +49,7 @@ exports.list = async (req, res) => {
         ]);
 
         res.json({
-            success: true, 
+            success: true,
             data: {
                 items,
                 pagination: {
@@ -79,7 +79,7 @@ exports.get = async (req, res) => {
 exports.create = async (req, res) => {
     try {
         const images = req.files ? req.files.map((file) => `/uploads/rooms/${file.filename}`) : [];
-        
+
         // Parse amenities if it's a JSON string
         let amenities = [];
         if (req.body.amenities) {
@@ -89,15 +89,15 @@ exports.create = async (req, res) => {
                 amenities = Array.isArray(req.body.amenities) ? req.body.amenities : [req.body.amenities];
             }
         }
-        
-        const roomData = { 
-            ...req.body, 
+
+        const roomData = {
+            ...req.body,
             images,
             amenities,
             price: Number(req.body.price),
             capacity: Number(req.body.capacity)
         };
-        
+
         const room = await roomService.createRoom(roomData);
         res.status(201).json({ success: true, data: room });
     } catch (err) {
@@ -109,7 +109,7 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
     try {
         let roomData = { ...req.body };
-        
+
         // Handle images to remove
         let imagesToDelete = [];
         if (req.body.imagesToRemove) {
@@ -122,13 +122,13 @@ exports.update = async (req, res) => {
                 imagesToDelete = [];
             }
         }
-        
+
         // Handle new images
         if (req.files && req.files.length > 0) {
             const images = req.files.map((file) => `/uploads/rooms/${file.filename}`);
             roomData.images = images;
         }
-        
+
         // Parse amenities if it's a JSON string
         if (req.body.amenities) {
             try {
@@ -137,13 +137,13 @@ exports.update = async (req, res) => {
                 roomData.amenities = Array.isArray(req.body.amenities) ? req.body.amenities : [req.body.amenities];
             }
         }
-        
+
         // Convert numeric fields
         if (req.body.price) roomData.price = Number(req.body.price);
         if (req.body.capacity) roomData.capacity = Number(req.body.capacity);
-        
+
         const room = await roomService.updateRoom(req.params.id, roomData, imagesToDelete);
-        
+
         // Delete image files from filesystem
         if (imagesToDelete.length > 0) {
             imagesToDelete.forEach(imagePath => {
@@ -160,7 +160,7 @@ exports.update = async (req, res) => {
                 }
             });
         }
-        
+
         res.json({ success: true, data: room });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });

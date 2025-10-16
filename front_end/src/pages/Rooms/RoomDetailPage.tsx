@@ -4,19 +4,19 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { Separator } from "../../components/ui/separator";
-import { 
-  ArrowLeft, 
-  Star, 
-  Wifi, 
-  Car, 
-  Coffee, 
-  Tv, 
-  Bath, 
-  AirVent, 
-  Users, 
-  Maximize, 
-  MapPin, 
-  Calendar, 
+import {
+  ArrowLeft,
+  Star,
+  Wifi,
+  Car,
+  Coffee,
+  Tv,
+  Bath,
+  AirVent,
+  Users,
+  Maximize,
+  MapPin,
+  Calendar,
   Clock,
   Bed,
   Utensils,
@@ -92,18 +92,18 @@ export function RoomDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null as string | null);
   const { selectedRoom } = useRoomStore();
-  
+
   // Get search parameters from router state if available
-  const searchParams = location.state as { 
-    checkIn?: string; 
-    checkOut?: string; 
-    adults?: number; 
+  const searchParams = location.state as {
+    checkIn?: string;
+    checkOut?: string;
+    adults?: number;
     children?: number;
     searchTerm?: string;
     priceRange?: string;
     capacity?: string;
   } || {};
-  
+
   // Log received parameters for debugging
   useEffect(() => {
     console.log('RoomDetailPage received parameters:', {
@@ -112,7 +112,7 @@ export function RoomDetailPage() {
       locationState: location.state
     });
   }, [id, searchParams, location.state]);
-  
+
   // Booking form state
   const [bookingData, setBookingData] = useState({
     checkIn: searchParams.checkIn || new Date(Date.now() + 86400000).toISOString().split('T')[0], // Ngày mai hoặc từ search params
@@ -126,10 +126,10 @@ export function RoomDetailPage() {
     const loadRoom = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         console.log('Loading room with ID:', id);
-        
+
         // First try to get from store
         if (selectedRoom && ((selectedRoom as any).id === id || selectedRoom._id === id)) {
           console.log('Found room in store:', selectedRoom);
@@ -137,11 +137,11 @@ export function RoomDetailPage() {
           setLoading(false);
           return;
         }
-        
+
         // Otherwise fetch from API
         const roomData = await roomService.getRoomById(id!);
         console.log('Room data from API:', roomData);
-        
+
         if (roomData) {
           setRoom(roomData);
           // Reset selected image index when room changes
@@ -179,7 +179,7 @@ export function RoomDetailPage() {
       navigate('/login');
       return;
     }
-    
+
     // Log booking data for debugging
     console.log('Booking data being sent:', {
       roomId,
@@ -188,7 +188,7 @@ export function RoomDetailPage() {
       adults: bookingData.adults,
       children: bookingData.children
     });
-    
+
     // Navigate to booking page with form data
     navigate(`/user/booking/${roomId}`, {
       state: {
@@ -263,16 +263,16 @@ export function RoomDetailPage() {
     if (amenityIcons[amenityName]) {
       return amenityIcons[amenityName];
     }
-    
+
     // Then try partial match
-    const matchedKey = Object.keys(amenityIcons).find(key => 
+    const matchedKey = Object.keys(amenityIcons).find(key =>
       amenityName.toLowerCase().includes(key.toLowerCase())
     );
-    
+
     if (matchedKey) {
       return amenityIcons[matchedKey];
     }
-    
+
     // Default to Wifi icon
     return Wifi;
   };
@@ -280,10 +280,10 @@ export function RoomDetailPage() {
   // Process images to handle duplicates appropriately
   const processImages = (images: string[]): string[] => {
     if (!images || images.length === 0) return [];
-    
+
     // Remove duplicates while preserving order
     const uniqueImages = [...new Set(images)];
-    
+
     // Return all unique images
     return uniqueImages;
   };
@@ -310,7 +310,7 @@ export function RoomDetailPage() {
                 // Check if we came from the rooms page with search params
                 if (searchParams.searchTerm || searchParams.priceRange || searchParams.capacity) {
                   // Navigate back to rooms page with search parameters
-                  navigate('/rooms', { 
+                  navigate('/rooms', {
                     state: {
                       searchTerm: searchParams.searchTerm,
                       priceRange: searchParams.priceRange,
@@ -322,7 +322,7 @@ export function RoomDetailPage() {
                 }
               } else {
                 // Fallback to rooms page with search params if available
-                navigate('/rooms', { 
+                navigate('/rooms', {
                   state: searchParams.searchTerm || searchParams.priceRange || searchParams.capacity ? {
                     searchTerm: searchParams.searchTerm,
                     priceRange: searchParams.priceRange,
@@ -373,7 +373,7 @@ export function RoomDetailPage() {
               <CardContent className="p-0">
                 <div className="aspect-video relative">
                   <ImageWithFallback
-                    src={processedImages && processedImages.length > 0 
+                    src={processedImages && processedImages.length > 0
                       ? getFullImageUrl(processedImages[selectedImageIndex])
                       : "https://images.unsplash.com/photo-1632598024410-3d8f24daab57?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHhsdXh1cnklMjBob3RlbCUyMHJvb20lMjBpbnRlcmlvcnxlbnwxfHx8fDE3NTkyMjkwNjR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"}
                     alt={room.name}
@@ -388,14 +388,13 @@ export function RoomDetailPage() {
                         console.log(`Image ${index}:`, image);
                         const fullImageUrl = getFullImageUrl(image);
                         console.log(`Full URL for image ${index}:`, fullImageUrl);
-                        
+
                         return (
                           <button
                             key={index}
                             onClick={() => setSelectedImageIndex(index)}
-                            className={`aspect-video rounded-lg overflow-hidden border-2 ${
-                              selectedImageIndex === index ? 'border-primary' : 'border-gray-200'
-                            }`}
+                            className={`aspect-video rounded-lg overflow-hidden border-2 ${selectedImageIndex === index ? 'border-primary' : 'border-gray-200'
+                              }`}
                           >
                             <ImageWithFallback
                               src={fullImageUrl}
@@ -437,9 +436,9 @@ export function RoomDetailPage() {
                     <p className="font-semibold">12:00</p>
                   </div>
                 </div>
-                
+
                 <Separator className="my-6" />
-                
+
                 <div>
                   <h4 className="font-semibold mb-3">Mô tả</h4>
                   <p className="text-gray-700 leading-relaxed">{room.description || 'Phòng sang trọng với đầy đủ tiện nghi hiện đại.'}</p>
@@ -486,7 +485,7 @@ export function RoomDetailPage() {
                   <div className="text-3xl font-bold text-primary">{room.price.toLocaleString('vi-VN')}₫</div>
                   <p className="text-gray-600">per đêm</p>
                 </div>
-                
+
                 {/* Booking Form */}
                 <div className="space-y-4 mb-6">
                   <div className="grid grid-cols-2 gap-3">
@@ -515,11 +514,11 @@ export function RoomDetailPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Người lớn</label>
-                      <select 
+                      <select
                         value={bookingData.adults}
                         onChange={(e) => handleBookingDataChange('adults', parseInt(e.target.value))}
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
@@ -531,7 +530,7 @@ export function RoomDetailPage() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Trẻ em</label>
-                      <select 
+                      <select
                         value={bookingData.children}
                         onChange={(e) => handleBookingDataChange('children', parseInt(e.target.value))}
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
@@ -543,7 +542,7 @@ export function RoomDetailPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-3 mb-6 p-4 bg-gray-50 rounded-lg">
                   <div className="flex justify-between">
                     <span>{nights} đêm × {room.price.toLocaleString('vi-VN')}₫</span>
@@ -563,12 +562,12 @@ export function RoomDetailPage() {
                     <span>{totalPrice.toLocaleString('vi-VN')}₫</span>
                   </div>
                 </div>
-                
+
                 {isAuthenticated ? (
-                  <Button 
+                  <Button
                     variant="default"
                     size="lg"
-                    onClick={() => handleBookNow(validRoomId)} 
+                    onClick={() => handleBookNow(validRoomId)}
                     className="w-full"
                   >
                     Đặt phòng ngay
@@ -578,17 +577,17 @@ export function RoomDetailPage() {
                     <p className="text-center text-sm text-gray-600">
                       Đăng nhập để đặt phòng
                     </p>
-                    <Button 
+                    <Button
                       variant="outline"
                       size="default"
-                      onClick={() => navigate('/login')} 
+                      onClick={() => navigate('/login')}
                       className="w-full"
                     >
                       Đăng nhập
                     </Button>
                   </div>
                 )}
-                
+
                 <p className="text-xs text-gray-500 text-center mt-4">
                   Miễn phí hủy phòng trong 24h
                 </p>

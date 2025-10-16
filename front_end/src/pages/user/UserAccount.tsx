@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import { 
-  User, 
-  Calendar, 
-  CreditCard, 
-  Settings, 
-  Edit3, 
-  Eye, 
+import {
+  User,
+  Calendar,
+  CreditCard,
+  Settings,
+  Edit3,
+  Eye,
   EyeOff,
   CheckCircle,
   Clock,
@@ -62,7 +62,7 @@ export function UserAccount() {
         // Load bookings
         const userBookings = await bookingService.getUserBookings();
         setBookings(userBookings);
-        
+
         // Load reviews - for now we'll set empty array since reviewService doesn't exist
         setReviews([]);
       } catch (error) {
@@ -165,9 +165,9 @@ export function UserAccount() {
                       </Button>
                     </div>
                   </div>
-                  
-                  <Button 
-                    variant="outline" 
+
+                  <Button
+                    variant="outline"
                     size="default"
                     className="w-full"
                     onClick={logout}
@@ -216,8 +216,8 @@ export function UserAccount() {
                         {bookings.map((booking) => (
                           <div key={booking._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                             <div className="flex gap-4">
-                              <img 
-                                src={getRoomImage(booking.room)} 
+                              <img
+                                src={getRoomImage(booking.room)}
                                 alt={booking.room.name}
                                 className="w-24 h-24 object-cover rounded-lg"
                               />
@@ -271,8 +271,8 @@ export function UserAccount() {
                         {reviews.map((review) => (
                           <div key={review._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                             <div className="flex gap-4">
-                              <img 
-                                src={getRoomImage(review.room)} 
+                              <img
+                                src={getRoomImage(review.room)}
                                 alt={review.room.name}
                                 className="w-24 h-24 object-cover rounded-lg"
                               />
@@ -282,9 +282,9 @@ export function UserAccount() {
                                     <h3 className="font-semibold">{review.room.name}</h3>
                                     <div className="flex items-center gap-1 mt-1">
                                       {[...Array(5)].map((_, i) => (
-                                        <Star 
-                                          key={i} 
-                                          className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                                        <Star
+                                          key={i}
+                                          className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                                         />
                                       ))}
                                       <span className="text-sm text-gray-600 ml-1">({review.rating}/5)</span>
@@ -336,7 +336,7 @@ export function UserAccount() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div>
                         <h3 className="text-lg font-medium mb-4">Bảo mật</h3>
                         <Button variant="outline" size="default" className="" disabled>

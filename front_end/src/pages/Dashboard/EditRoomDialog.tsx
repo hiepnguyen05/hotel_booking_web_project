@@ -49,7 +49,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
   const [selectedImages, setSelectedImages] = useState([] as File[]);
   const [newAmenity, setNewAmenity] = useState('');
   const [imagesToRemove, setImagesToRemove] = useState([] as string[]); // Track images to remove
-  
+
   const [formData, setFormData] = useState({
     name: '',
     type: 'single',
@@ -117,7 +117,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
 
   const handleSubmit = async () => {
     setIsLoading(true);
-    
+
     try {
       // Validation
       if (!formData.name || !formData.price || !formData.capacity || !formData.id) {
@@ -142,7 +142,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
       }
 
       await roomService.updateRoom(updateData);
-      
+
       onSuccess();
       onOpenChange(false);
     } catch (error) {
@@ -164,7 +164,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
         <DialogHeader className="p-6 border-b flex-shrink-0">
           <DialogTitle>Chỉnh sửa phòng: {room.name}</DialogTitle>
         </DialogHeader>
-        
+
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-6">
             {/* Basic Information */}
@@ -178,7 +178,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   placeholder="VD: Phòng Deluxe Ocean View"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="type">Loại phòng *</Label>
                 <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
@@ -212,7 +212,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="capacity">Sức chứa *</Label>
                 <Input
@@ -223,7 +223,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   onChange={(e) => handleInputChange('capacity', parseInt(e.target.value) || 1)}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="price">Giá phòng (VNĐ/đêm) *</Label>
                 <Input
@@ -311,7 +311,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   <p className="text-xs text-gray-500">PNG, JPG, JPEG (tối đa 10 ảnh)</p>
                 </label>
               </div>
-              
+
               {selectedImages.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
                   {selectedImages.map((file, index) => (
@@ -338,7 +338,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
             {/* Amenities */}
             <div className="space-y-2">
               <Label>Tiện nghi</Label>
-              
+
               {/* Common amenities */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {COMMON_AMENITIES.map(amenity => (
@@ -360,7 +360,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   </Button>
                 ))}
               </div>
-              
+
               {/* Custom amenity input */}
               <div className="flex gap-2">
                 <Input
@@ -373,7 +373,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               {/* Selected amenities */}
               {formData.amenities && formData.amenities.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">

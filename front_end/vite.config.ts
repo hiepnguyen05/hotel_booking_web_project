@@ -9,13 +9,13 @@ function getLocalIP() {
   for (const name of Object.keys(interfaces)) {
     const ifaceArray = interfaces[name];
     if (!ifaceArray) continue;
-    
+
     for (const iface of ifaceArray) {
       // Skip internal (loopback) and IPv6 addresses
       if (iface.internal || iface.family !== 'IPv4') {
         continue;
       }
-      
+
       // Return the first non-internal IPv4 address
       if (!iface.internal && iface.family === 'IPv4') {
         return iface.address;

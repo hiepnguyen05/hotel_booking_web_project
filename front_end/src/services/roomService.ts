@@ -92,7 +92,7 @@ class RoomService {
   async searchAvailableRooms(params: SearchParams): Promise<{ rooms: SearchRoomResult[]; total: number }> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           queryParams.append(key, value.toString());
@@ -100,16 +100,16 @@ class RoomService {
       });
 
       // apiClient.get sẽ trả về toàn bộ phản hồi JSON
-      const response: { 
-        status: number; 
-        message: string; 
+      const response: {
+        status: number;
+        message: string;
         data: SearchRoomResult[]
       } = await apiClient.get(`/rooms/available?${queryParams.toString()}`);
-      
+
       console.log('API Response:', response);
       console.log('Response type:', typeof response);
       console.log('Response keys:', Object.keys(response));
-      
+
       // Kiểm tra cấu trúc phản hồi
       if (response && response.status === 200) {
         console.log('Response.data:', response.data);
@@ -117,7 +117,7 @@ class RoomService {
         if (response.data) {
           console.log('Response.data keys:', Object.keys(response.data));
         }
-        
+
         // Backend trả về mảng các phòng trong trường data
         if (Array.isArray(response.data)) {
           console.log('Using response.data as array:', response.data);
@@ -135,7 +135,7 @@ class RoomService {
           return { rooms: normalizedRooms, total: normalizedRooms.length };
         }
       }
-      
+
       console.log('Invalid response format, returning empty result');
       return { rooms: [], total: 0 };
     } catch (error) {
@@ -160,16 +160,16 @@ class RoomService {
     roomTypes: { type: string; count: number }[];
   }> {
     try {
-      const response = await apiClient.get<{ 
-        status: number; 
-        message: string; 
+      const response = await apiClient.get<{
+        status: number;
+        message: string;
         data: {
           totalRooms: number;
           availableRooms: number;
           roomTypes: { type: string; count: number }[];
         }
       }>('/admin/rooms/stats');
-      
+
       return response.status === 200 ? response.data : {
         totalRooms: 0,
         availableRooms: 0,
@@ -189,18 +189,18 @@ class RoomService {
   async getAdminRooms(params: any): Promise<{ items: Room[]; pagination: any }> {
     try {
       const queryParams = new URLSearchParams();
-      
+
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           queryParams.append(key, value.toString());
         }
       });
 
-      const response = await apiClient.get<{ 
-        success: boolean; 
-        data: { items: Room[]; pagination: any } 
+      const response = await apiClient.get<{
+        success: boolean;
+        data: { items: Room[]; pagination: any }
       }>(`/admin/rooms?${queryParams.toString()}`);
-      
+
       return response.success ? response.data : { items: [], pagination: { page: 1, limit: 10, total: 0, pages: 1 } };
     } catch (error) {
       console.error('Get admin rooms error:', error);
@@ -221,7 +221,7 @@ class RoomService {
   async createRoom(roomData: CreateRoomData): Promise<Room | null> {
     try {
       const formData = new FormData();
-      
+
       // Add text fields
       Object.entries(roomData).forEach(([key, value]) => {
         if (key !== 'images') {
@@ -233,14 +233,14 @@ class RoomService {
           }
         }
       });
-      
+
       // Add images
       if (roomData.images) {
         roomData.images.forEach((image) => {
           formData.append('images', image);
         });
       }
-      
+
       const response = await apiClient.upload<{ success: boolean; data: Room }>(`/admin/rooms`, formData);
       return response.success ? response.data : null;
     } catch (error) {
@@ -252,7 +252,7 @@ class RoomService {
   async updateRoom(roomData: UpdateRoomData): Promise<Room | null> {
     try {
       const formData = new FormData();
-      
+
       // Add text fields
       Object.entries(roomData).forEach(([key, value]) => {
         // Skip id, images, and imagesToRemove fields as they need special handling
@@ -265,19 +265,19 @@ class RoomService {
           }
         }
       });
-      
+
       // Add images
       if (roomData.images) {
         roomData.images.forEach((image) => {
           formData.append('images', image);
         });
       }
-      
+
       // Add images to remove
       if (roomData.imagesToRemove) {
         formData.append('imagesToRemove', JSON.stringify(roomData.imagesToRemove));
       }
-      
+
       const response = await apiClient.upload<{ success: boolean; data: Room }>(`/admin/rooms/${roomData.id}`, formData, 'PUT');
       return response.success ? response.data : null;
     } catch (error) {

@@ -11,12 +11,12 @@ export function getFullImageUrl(imagePath: string): string {
   if (!imagePath) {
     return 'https://images.unsplash.com/photo-1632598024410-3d8f24daab57?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHhsdXh1cnklMjBob3RlbCUyMHJvb20lMjBpbnRlcmlvcnxlbnwxfHx8fDE3NTkyMjkwNjR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
   }
-  
+
   // If the image path is already a full URL, return it as is
   if (imagePath.startsWith('http')) {
     return imagePath;
   }
-  
+
   // If it's a relative path that starts with /uploads, serve it from the base URL without /api
   if (imagePath.startsWith('/uploads')) {
     // Handle case where API_BASE_URL might end with /api or not
@@ -27,7 +27,7 @@ export function getFullImageUrl(imagePath: string): string {
     const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
     return `${cleanBaseUrl}${cleanPath}`;
   }
-  
+
   // For other relative paths, prepend the API base URL
   // Remove leading slash if it exists to avoid double slashes
   const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
@@ -45,12 +45,12 @@ export function getFullImageUrl(imagePath: string): string {
  */
 export function getOptimizedImageUrl(imagePath: string, width?: number, height?: number): string {
   const baseUrl = getFullImageUrl(imagePath);
-  
+
   // If it's a placeholder or external URL, return as is
   if (!imagePath || imagePath.startsWith('http') || !imagePath.startsWith('/uploads')) {
     return baseUrl;
   }
-  
+
   // For local uploads, we can't add query parameters for optimization
   // The optimization should be done on the server side
   return baseUrl;

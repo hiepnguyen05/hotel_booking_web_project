@@ -4,19 +4,19 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { Separator } from "../../components/ui/separator";
-import { 
-  ArrowLeft, 
-  Star, 
-  Wifi, 
-  Car, 
-  Coffee, 
-  Tv, 
-  Bath, 
-  AirVent, 
-  Users, 
-  Maximize, 
-  MapPin, 
-  Calendar, 
+import {
+  ArrowLeft,
+  Star,
+  Wifi,
+  Car,
+  Coffee,
+  Tv,
+  Bath,
+  AirVent,
+  Users,
+  Maximize,
+  MapPin,
+  Calendar,
   Clock,
   Bed,
   Utensils,
@@ -148,16 +148,16 @@ export function RoomDetailPage() {
     if (amenityIcons[amenityName]) {
       return amenityIcons[amenityName];
     }
-    
+
     // Then try partial match
-    const matchedKey = Object.keys(amenityIcons).find(key => 
+    const matchedKey = Object.keys(amenityIcons).find(key =>
       amenityName.toLowerCase().includes(key.toLowerCase())
     );
-    
+
     if (matchedKey) {
       return amenityIcons[matchedKey];
     }
-    
+
     // Default to Wifi icon
     return Wifi;
   };
@@ -225,9 +225,8 @@ export function RoomDetailPage() {
                         <button
                           key={index}
                           onClick={() => setImageIndex(index)}
-                          className={`aspect-video rounded-lg overflow-hidden border-2 ${
-                            imageIndex === index ? 'border-primary' : 'border-gray-200'
-                          }`}
+                          className={`aspect-video rounded-lg overflow-hidden border-2 ${imageIndex === index ? 'border-primary' : 'border-gray-200'
+                            }`}
                         >
                           <ImageWithFallback
                             src={getFullImageUrl(image)}
@@ -268,9 +267,9 @@ export function RoomDetailPage() {
                     <p className="font-semibold">12:00</p>
                   </div>
                 </div>
-                
+
                 <Separator className="my-6" />
-                
+
                 <div>
                   <h4 className="font-semibold mb-3">Mô tả</h4>
                   <p className="text-gray-700 leading-relaxed">{room.description || 'Phòng sang trọng với đầy đủ tiện nghi hiện đại.'}</p>
@@ -317,11 +316,11 @@ export function RoomDetailPage() {
                   <div className="text-3xl font-bold text-primary">{room.price.toLocaleString('vi-VN')}₫</div>
                   <p className="text-gray-600">per đêm</p>
                 </div>
-                
+
                 <Button variant="default" size="lg" className="w-full">
                   Đặt phòng ngay
                 </Button>
-                
+
                 <p className="text-xs text-gray-500 text-center mt-4">
                   Miễn phí hủy phòng trong 24h
                 </p>
