@@ -48,14 +48,6 @@ export function MainLayout() {
       </main>
       
       <Footer onNavigate={handleNavigate} />
-      
-      {/* Admin Access Button - Fixed position */}
-      <button
-        onClick={() => navigate('/admin')}
-        className="fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg shadow-lg hover:bg-primary/90 transition-colors z-50"
-      >
-        Admin
-      </button>
     </div>
   );
 }

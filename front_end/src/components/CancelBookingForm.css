@@ -1,0 +1,40 @@
+.cancel-booking-form {
+  width: 350px;
+  max-width: 350px;
+}
+
+.cancel-booking-form .form-content {
+  padding: 0.75rem;
+}
+
+.cancel-booking-form .form-header {
+  padding: 0.75rem 0.75rem 0 0.75rem;
+}
+
+.cancel-booking-form .form-footer {
+  padding: 0 0.75rem 0.75rem 0.75rem;
+}
+
+.cancel-booking-form .select-trigger {
+  width: 100%;
+}
+
+.cancel-booking-form .textarea {
+  min-height: 100px;
+  resize: none;
+}
+
+.cancel-booking-form .button {
+  min-width: 90px;
+}
+
+.cancel-booking-form .error-message {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.cancel-booking-form .reason-intro {
+  margin-bottom: 1rem;
+  color: #666;
+  font-size: 0.9rem;
+}

@@ -1,58 +1,64 @@
-import React, { createContext, useContext } from 'react';
-import { toast, Toaster } from 'sonner';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { ToastNotification } from '../components/ToastNotification';
 
-interface ToastContextType {
-  showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void;
-  showSuccess: (message: string) => void;
-  showError: (message: string) => void;
-  showWarning: (message: string) => void;
-  showInfo: (message: string) => void;
+type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+interface Toast {
+  id: string;
+  title: string;
+  message: string;
+  type: ToastType;
 }
 
-const ToastContext = createContext(undefined as any);
+interface ToastContextType {
+  addToast: (title: string, message: string, type: ToastType) => void;
+  removeToast: (id: string) => void;
+}
 
-export const ToastProvider = ({ children }: { children: any }) => {
-  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
-    switch (type) {
-      case 'success':
-        toast.success(message);
-        break;
-      case 'error':
-        toast.error(message);
-        break;
-      case 'warning':
-        toast.warning(message);
-        break;
-      default:
-        toast(message);
-    }
+const ToastContext = createContext<ToastContextType | undefined>(undefined);
+
+export function ToastProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const addToast = (title: string, message: string, type: ToastType) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    const newToast: Toast = { id, title, message, type };
+    
+    setToasts((prev) => [...prev, newToast]);
+    
+    // Tự động xóa toast sau 5 giây
+    setTimeout(() => {
+      removeToast(id);
+    }, 5000);
   };
 
-  const showSuccess = (message: string) => showToast(message, 'success');
-  const showError = (message: string) => showToast(message, 'error');
-  const showWarning = (message: string) => showToast(message, 'warning');
-  const showInfo = (message: string) => showToast(message, 'info');
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
 
   return (
-    <ToastContext.Provider
-      value={{
-        showToast,
-        showSuccess,
-        showError,
-        showWarning,
-        showInfo
-      }}
-    >
-      <Toaster position="top-right" />
+    <ToastContext.Provider value={{ addToast, removeToast }}>
       {children}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {toasts.map((toast) => (
+          <div key={toast.id}>
+            <ToastNotification
+              title={toast.title}
+              message={toast.message}
+              type={toast.type}
+              onClose={() => removeToast(toast.id)}
+            />
+          </div>
+        ))}
+      </div>
     </ToastContext.Provider>
   );
-};
+}
 
-export const useToast = (): ToastContextType => {
+export function useToast() {
   const context = useContext(ToastContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useToast must be used within a ToastProvider');
   }
   return context;
-};
+}

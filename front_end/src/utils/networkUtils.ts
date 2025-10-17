@@ -116,9 +116,8 @@ export function getApiBaseUrl(): string {
     return 'http://localhost:5000/api';
   }
   
-  // In production, you would typically use the deployed backend URL
-  // This is just a placeholder - replace with your actual production API URL
-  return '/api';
+  // In production, use the Render URL
+  return 'https://hotel-booking-web-project.onrender.com/api';
 }
 
 /**

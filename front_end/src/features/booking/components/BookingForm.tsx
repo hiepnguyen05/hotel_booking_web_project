@@ -211,6 +211,7 @@ export function BookingForm({ roomId, user, onBack, onBookingComplete, checkInDa
             }
           });
         } else {
+          // Luôn gọi onBookingComplete bất kể phương thức thanh toán
           onBookingComplete({
             ...booking,
             roomName: (room as any).name,
