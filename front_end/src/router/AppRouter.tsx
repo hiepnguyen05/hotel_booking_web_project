@@ -10,19 +10,9 @@ import { AdminLayout } from '../components/AdminLayout';
 import { HomePage } from '../pages/Home/HomePage';
 import { RoomsPage } from '../pages/Rooms/RoomsPage';
 import { RoomDetailPage } from '../pages/Rooms/RoomDetailPage';
-import { ContactPage } from '../pages/User/ContactPage';
-import { UserLogin } from '../pages/User/UserLogin';
-import { UserRegister } from '../pages/User/UserRegister';
 
 // Protected User Pages
-import { BookingPage } from '../features/booking/pages/BookingPage';
-import { PaymentPage } from '../features/booking/pages/PaymentPage';
 import { PaymentResultPage } from '../features/booking/pages/PaymentResultPage';
-import { UserAccount } from '../pages/User/UserAccount';
-import { BookingDetailPage } from '../pages/User/BookingDetailPage';
-import { BookingFlow } from '../pages/User/BookingFlow';
-import { MoMoPaymentPage } from '../features/booking/pages/MoMoPaymentPage';
-import { BookingSuccess } from '../pages/User/BookingSuccess';
 
 // Admin Pages
 import { AdminLogin } from '../pages/Dashboard/AdminLogin';
@@ -54,26 +44,7 @@ export function AppRouter() {
           <Route index element={<HomePage />} />
           <Route path="rooms" element={<RoomsPage />} />
           <Route path="rooms/:id" element={<RoomDetailPage />} />
-          <Route path="contact" element={<ContactPage onBack={() => window.history.back()} />} />
-          <Route path="login" element={<UserLogin onBack={() => window.history.back()} />} />
-          <Route path="register" element={<UserRegister onBack={() => window.history.back()} />} />
           <Route path="payment-result" element={<PaymentResultPage />} />
-        </Route>
-
-        {/* Protected User Routes */}
-        <Route path="/user" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-          <Route path="booking/:roomId" element={<BookingFlow />} />
-          <Route path="bookings/:id/payment" element={<PaymentPage />} />
-          <Route path="account" element={<UserAccount />} />
-          <Route path="booking/:id" element={<BookingDetailPage />} />
-          <Route path="payment/momo" element={<MoMoPaymentPage />} />
-          <Route path="payment-result" element={<PaymentResultPage />} />
-          <Route path="booking/success" element={
-            <BookingSuccess
-              onBackToHome={() => window.location.href = '/'}
-              onViewAccount={() => window.location.href = '/user/account'}
-            />
-          } />
         </Route>
 
         {/* Admin Routes - New Layout */}
