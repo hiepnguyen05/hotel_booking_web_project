@@ -1,6 +1,6 @@
 // Application constants
 export const APP_NAME = 'NgocHiepHotel';
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api';
 
 // Date and time formats
 export const DATE_FORMAT = 'dd/MM/yyyy';

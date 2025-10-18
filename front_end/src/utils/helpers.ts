@@ -254,7 +254,7 @@ export const getImageUrl = (imagePath: string, baseUrl?: string): string => {
   if (!imagePath) return '/placeholder-image.jpg';
   if (imagePath.startsWith('http')) return imagePath;
   
-  const base = baseUrl || 'http://localhost:3000';
+  const base = baseUrl || (import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'https://hotel-booking-web-project.onrender.com';
   return `${base}/uploads/${imagePath}`;
 };
 
@@ -264,8 +264,8 @@ export const getFullImageUrl = (imagePath: string, baseUrl?: string): string => 
     return imagePath;
   }
   
-  // Use provided baseUrl, or default to localhost:3000
-  const base = baseUrl || 'http://localhost:3000';
+  // Use provided baseUrl, or default to https://hotel-booking-web-project.onrender.com
+  const base = baseUrl || (import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'https://hotel-booking-web-project.onrender.com';
   
   // Remove leading slash if it exists to avoid double slashes
   const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;

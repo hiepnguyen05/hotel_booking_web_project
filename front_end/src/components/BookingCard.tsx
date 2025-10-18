@@ -54,7 +54,7 @@ export function BookingCard({ booking }: BookingCardProps) {
       return imagePath;
     }
     // If it's a relative path that starts with /uploads, serve it from the base URL without /api
-    const baseUrl = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const baseUrl = (import.meta as any).env.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api';
     if (imagePath.startsWith('/uploads')) {
       // Handle case where baseUrl might end with /api or not
       const baseUrlWithoutApi = baseUrl.replace('/api', '');

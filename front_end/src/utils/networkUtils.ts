@@ -112,7 +112,7 @@ export function getApiBaseUrl(): string {
     }
     
     // Default to localhost if we can't determine the IP
-    return 'http://localhost:5000/api';
+    return 'https://hotel-booking-web-project.onrender.com/api';
   }
   
   // In production, use the Render URL
@@ -141,7 +141,7 @@ export function getNetworkAccessUrl(): string {
   }
   
   // In server environment (Node.js)
-  return 'http://localhost:3000'; // Default Vite port
+  return (import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'https://hotel-booking-web-project.onrender.com'; // Default Vite port
 }
 
 /**

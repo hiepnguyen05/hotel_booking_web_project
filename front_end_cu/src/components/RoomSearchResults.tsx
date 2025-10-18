@@ -22,7 +22,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { roomService, Room } from "../services/roomService";
 
 // Get the API base URL from environment variables or use default
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api';
 
 interface RoomSearchResultsProps {
   searchParams: {

@@ -20,7 +20,7 @@ export function Header({ onNavigate }: HeaderProps) {
           {/* Logo */}
           <div className="flex items-center">
             <h1
-              className="text-primary font-bold text-2xl cursor-pointer"
+              className="text-primary font-bold text-2xl cursor-pointer luxury-hotel-name"
               onClick={() => onNavigate?.('home')}
             >
               NgocHiepHotel
@@ -31,19 +31,19 @@ export function Header({ onNavigate }: HeaderProps) {
           <nav className="hidden md:flex items-center space-x-8">
             <button
               onClick={() => onNavigate?.('home')}
-              className="text-gray-700 hover:text-primary transition-colors"
+              className="text-gray-700 hover:text-primary transition-colors cursor-pointer hover:cursor-pointer"
             >
               Trang chủ
             </button>
             <button
               onClick={() => onNavigate?.('rooms')}
-              className="text-gray-700 hover:text-primary transition-colors"
+              className="text-gray-700 hover:text-primary transition-colors cursor-pointer hover:cursor-pointer"
             >
               Phòng & Suites
             </button>
             <button
               onClick={() => onNavigate?.('contact')}
-              className="text-gray-700 hover:text-primary transition-colors"
+              className="text-gray-700 hover:text-primary transition-colors cursor-pointer hover:cursor-pointer"
             >
               Liên hệ
             </button>
@@ -62,7 +62,7 @@ export function Header({ onNavigate }: HeaderProps) {
                   variant="outline"
                   size="default"
                   onClick={() => navigate('/user/account')}
-                  className="hidden sm:flex items-center"
+                  className="hidden sm:flex items-center cursor-pointer"
                 >
                   <User className="h-4 w-4 mr-2" />
                   Tài khoản
@@ -71,7 +71,7 @@ export function Header({ onNavigate }: HeaderProps) {
                 {/* Mobile User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger>
-                    <Button variant="ghost" size="icon" className="flex sm:hidden">
+                    <Button variant="ghost" size="icon" className="flex sm:hidden cursor-pointer">
                       <User className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -112,7 +112,7 @@ export function Header({ onNavigate }: HeaderProps) {
                 variant="outline"
                 size="default"
                 onClick={() => navigate('/login')}
-                className="hidden sm:flex"
+                className="hidden sm:flex cursor-pointer"
               >
                 <User className="h-4 w-4 mr-2" />
                 Đăng nhập
@@ -120,7 +120,7 @@ export function Header({ onNavigate }: HeaderProps) {
             )}
 
             {/* Mobile Menu */}
-            <Button variant="ghost" size="icon" className="flex sm:hidden">
+            <Button variant="ghost" size="icon" className="flex sm:hidden cursor-pointer">
               <Menu className="h-5 w-5" />
             </Button>
 
@@ -128,7 +128,7 @@ export function Header({ onNavigate }: HeaderProps) {
               variant="default"
               size="default"
               onClick={() => navigate('/rooms')}
-              className="bg-primary text-white hover:bg-primary/90"
+              className="bg-primary text-white hover:bg-primary/90 cursor-pointer"
             >
               Đặt phòng
             </Button>

@@ -118,7 +118,8 @@ const allowedOrigins = [
   "http://localhost:5173", // Vite default port
   "http://127.0.0.1:5173", // Vite default port
   "https://hotel-booking-web-project-539c.vercel.app", // Vercel deployment
-  "https://hotel-booking-web-project.vercel.app" // Vercel deployment (if exists)
+  "https://hotel-booking-web-project.vercel.app", // Vercel deployment (if exists)
+  "https://hotel-booking-web-project.onrender.com" // Render deployment
 ];
 
 // Add dynamic origin handling for network access

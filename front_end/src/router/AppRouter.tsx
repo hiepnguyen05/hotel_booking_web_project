@@ -12,6 +12,8 @@ import { RoomsPage } from '../pages/Rooms/RoomsPage';
 import { RoomDetailPage } from '../pages/Rooms/RoomDetailPage';
 import { LoginPage } from '../pages/Auth/LoginPage';
 import { AdminLogin } from '../pages/Dashboard/AdminLogin';
+import { CustomAlertDialogDemoPage } from '../pages/CustomAlertDialogDemoPage';
+import { RoomManagementDemo } from '../pages/RoomManagementDemo';
 
 // Protected User Pages
 import { PaymentResultPage } from '../features/booking/pages/PaymentResultPage';
@@ -56,6 +58,8 @@ export function AppRouter() {
           <Route path="user/booking/:id" element={<BookingPage />} />
           <Route path="user/payment/momo" element={<MoMoPaymentPage />} />
           <Route path="admin/login" element={<AdminLogin />} />
+          <Route path="demo/alert-dialog" element={<CustomAlertDialogDemoPage />} />
+          <Route path="demo/room-management" element={<RoomManagementDemo />} />
         </Route>
 
         {/* Protected User Routes */}

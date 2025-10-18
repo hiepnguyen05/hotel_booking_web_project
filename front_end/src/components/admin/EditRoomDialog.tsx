@@ -260,7 +260,7 @@ export function EditRoomDialog({ open, onOpenChange, room, onSuccess }: EditRoom
                   {room.images.map((image, index) => (
                     <div key={index} className="relative">
                       <img
-                        src={`${'http://localhost:5000'}${image}`}
+                        src={`${(import.meta as any).env.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api'}${image}`}
                         alt={`Room ${index + 1}`}
                         className="w-full h-20 object-cover rounded"
                       />

@@ -341,17 +341,23 @@ class BookingService {
      */
     async createMoMoPayment(bookingId, returnUrl, notifyUrl, req = null) {
         try {
-            console.log('[SERVICE] createMoMoPayment called with:', { bookingId, returnUrl, notifyUrl });
+            console.log('[BOOKING SERVICE] === CREATE MOMO PAYMENT START ===');
+            console.log('[BOOKING SERVICE] Input parameters:');
+            console.log('[BOOKING SERVICE]   bookingId:', bookingId);
+            console.log('[BOOKING SERVICE]   returnUrl:', returnUrl);
+            console.log('[BOOKING SERVICE]   notifyUrl:', notifyUrl);
+            console.log('[BOOKING SERVICE]   req:', req ? 'Provided' : 'Not provided');
 
+            console.log('[BOOKING SERVICE] Finding booking by ID:', bookingId);
             const booking = await Booking.findById(bookingId).populate('room');
-            console.log('[SERVICE] Booking found:', booking ? 'Yes' : 'No');
+            console.log('[BOOKING SERVICE] Booking found:', booking ? 'Yes' : 'No');
 
             if (!booking) {
-                console.log('[SERVICE] Booking not found for ID:', bookingId);
+                console.log('[BOOKING SERVICE] Booking not found for ID:', bookingId);
                 throw new Error("Booking not found");
             }
 
-            console.log('[SERVICE] Booking details:', {
+            console.log('[BOOKING SERVICE] Booking details:', {
                 id: booking._id,
                 code: booking.bookingCode,
                 room: booking.room ? booking.room.name : 'No room',
@@ -360,35 +366,29 @@ class BookingService {
 
             // Create order info
             const orderInfo = `Thanh toán đặt phòng ${booking.bookingCode} - ${booking.room.name}`;
-            console.log('[SERVICE] Order info:', orderInfo);
+            console.log('[BOOKING SERVICE] Order info:', orderInfo);
 
             // Use NGROK URL from environment variables for backend callback
             const NGROK_URL = process.env.NGROK_URL || 'https://braylen-noisiest-biennially.ngrok-free.dev';
-            console.log('[SERVICE] NGROK_URL from env:', NGROK_URL);
+            console.log('[BOOKING SERVICE] NGROK_URL from env:', NGROK_URL);
 
             // For notifyUrl (ipnUrl) - MoMo will send POST request to this URL
             const finalNotifyUrl = `${NGROK_URL}/api/bookings/momo/callback`;
 
             // For returnUrl (redirectUrl) - MoMo will redirect user to this URL after payment
-            // Use localhost:3000 for frontend access during development
             let finalReturnUrl = returnUrl;
 
-            // If returnUrl is not provided or is localhost, use localhost:3000
-            if (!returnUrl || returnUrl.includes('localhost') || returnUrl.includes('127.0.0.1')) {
-                // Use localhost:3000 for frontend access
-                finalReturnUrl = `http://localhost:3000/payment-result`;
+            // If returnUrl is not provided, use https://hotel-booking-web-project.onrender.com
+            if (!returnUrl) {
+                finalReturnUrl = `${process.env.FRONTEND_URL || 'https://hotel-booking-web-project.onrender.com'}/payment-result`;
             }
 
-            console.log('[SERVICE] Final notifyUrl (ipnUrl):', finalNotifyUrl);
-            console.log('[SERVICE] Final returnUrl (redirectUrl):', finalReturnUrl);
+            console.log('[BOOKING SERVICE] Final URLs:');
+            console.log('[BOOKING SERVICE]   notifyUrl (ipnUrl):', finalNotifyUrl);
+            console.log('[BOOKING SERVICE]   returnUrl (redirectUrl):', finalReturnUrl);
 
-            // Save the returnUrl to the booking for later use in callback
-            booking.momoReturnUrl = finalReturnUrl;
-            await booking.save();
-            console.log('[SERVICE] Saved returnUrl to booking');
-
-            // Create payment with ngrok URLs
-            console.log('[SERVICE] Creating MoMo payment with:', {
+            // Create payment with URLs
+            console.log('[BOOKING SERVICE] Calling MoMoService.createPayment with:', {
                 orderInfo,
                 bookingId,
                 totalPrice: booking.totalPrice,
@@ -398,23 +398,32 @@ class BookingService {
 
             const paymentResult = await MoMoService.createPayment(
                 orderInfo,
-                bookingId,
+                bookingId,         // orderId - using bookingId as base for unique orderId
                 booking.totalPrice,
                 finalReturnUrl,    // redirectUrl - where MoMo redirects user after payment
                 finalNotifyUrl     // ipnUrl - where MoMo sends payment result
             );
 
-            console.log('[SERVICE] MoMo payment result:', JSON.stringify(paymentResult, null, 2));
+            console.log('[BOOKING SERVICE] MoMo payment result:', JSON.stringify(paymentResult, null, 2));
             
             // Check if payment creation was successful
             if (!paymentResult.success) {
-                console.error('[SERVICE] Failed to create MoMo payment:', paymentResult.error);
+                console.error('[BOOKING SERVICE] Failed to create MoMo payment:', paymentResult.error);
                 return paymentResult;
             }
             
+            // Save the unique orderId and returnUrl to the booking for later use in callback
+            booking.momoOrderId = paymentResult.data.orderId;
+            booking.momoRequestId = paymentResult.data.requestId;
+            booking.momoReturnUrl = finalReturnUrl;
+            await booking.save();
+            console.log('[BOOKING SERVICE] Saved MoMo payment info to booking');
+            
+            console.log('[BOOKING SERVICE] === CREATE MOMO PAYMENT SUCCESS ===');
             return paymentResult;
         } catch (error) {
-            console.error("[SERVICE] Create MoMo payment error:", error);
+            console.error("[BOOKING SERVICE] === CREATE MOMO PAYMENT ERROR ===");
+            console.error("[BOOKING SERVICE] Create MoMo payment error:", error);
             return { success: false, error: error.message };
         }
     }
@@ -438,11 +447,27 @@ class BookingService {
                 return { success: false, error: "Invalid MoMo callback signature" };
             }
 
-            const { orderId, resultCode, transId } = verificationResult.data;
-            console.log(`[SERVICE] Processing callback for orderId: ${orderId}, resultCode: ${resultCode}`);
+            const { orderId, requestId, resultCode, transId } = verificationResult.data;
+            console.log(`[SERVICE] Processing callback for orderId: ${orderId}, requestId: ${requestId}, resultCode: ${resultCode}`);
 
-            // Find booking by orderId (which is bookingId) and populate user and room
-            const booking = await Booking.findById(orderId).populate('room').populate('user');
+            // Special handling for result code 1006
+            if (resultCode === 1006) {
+                console.log("[SERVICE] Result code 1006: User denied payment confirmation");
+                console.log("[SERVICE] This is not a system error, but user action");
+            }
+
+            // Find booking by momoOrderId or by the original booking ID (orderId might contain timestamp)
+            // First try to find by momoOrderId
+            let booking = await Booking.findOne({ momoOrderId: orderId });
+            
+            // If not found, try to find by extracting the original booking ID from orderId
+            if (!booking) {
+                // Extract original booking ID (before the timestamp)
+                const originalBookingId = orderId.split('_')[0];
+                console.log(`[SERVICE] Trying to find booking by original ID: ${originalBookingId}`);
+                booking = await Booking.findById(originalBookingId).populate('room').populate('user');
+            }
+            
             console.log("[SERVICE] Found booking:", booking ? JSON.stringify(booking, null, 2) : "null");
 
             if (!booking) {
@@ -472,6 +497,11 @@ class BookingService {
                         console.log('[SERVICE] Booking confirmation email sent successfully');
                     }
                 }
+            } else if (resultCode === 1006) {
+                console.log("[SERVICE] User denied payment, updating booking status");
+                // User denied payment
+                booking.paymentStatus = 'failed';
+                console.log("[SERVICE] Updated booking status to failed due to user denial");
             } else {
                 console.log("[SERVICE] Payment failed, updating booking status");
                 // Payment failed
@@ -489,9 +519,9 @@ class BookingService {
             return {
                 success: true,
                 data: {
-                    bookingId: booking._id,
-                    paymentStatus: booking.paymentStatus,
-                    bookingStatus: booking.status
+                  bookingId: booking._id,
+                  paymentStatus: booking.paymentStatus,
+                  bookingStatus: booking.status
                 }
             };
         } catch (error) {

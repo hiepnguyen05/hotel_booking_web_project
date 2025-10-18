@@ -83,6 +83,14 @@ const bookingSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        momoOrderId: {
+            type: String,
+            trim: true,
+        },
+        momoRequestId: {
+            type: String,
+            trim: true,
+        },
         bookingCode: {
             type: String,
             unique: true,

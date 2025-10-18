@@ -72,12 +72,14 @@ export function RoomTypes({ onViewRoom }: RoomTypesProps) {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {roomTypes.map((room) => (
-            <RoomCard key={room.id} room={room} onViewRoom={onViewRoom} />
+            <div key={room.id}>
+              <RoomCard room={room} onViewRoom={onViewRoom} />
+            </div>
           ))}
         </div>
         
         <div className="text-center mt-12">
-          <button className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-8 py-3 text-base font-medium text-white hover:bg-primary/90 transition-colors">
+          <button className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-8 py-3 text-base font-medium text-white hover:bg-primary/90 transition-colors cursor-pointer">
             Xem tất cả phòng
           </button>
         </div>

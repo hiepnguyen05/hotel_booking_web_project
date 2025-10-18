@@ -145,7 +145,7 @@ export function PaymentForm() {
   // If already paid, redirect to payment result page
   if (booking.paymentStatus === 'paid') {
     // Redirect to payment result page with booking ID
-    window.location.href = `http://localhost:3000/payment-result?orderId=${booking._id}&resultCode=0`;
+    window.location.href = `${(import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'https://hotel-booking-web-project.onrender.com'}/payment-result?orderId=${booking._id}&resultCode=0`;
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

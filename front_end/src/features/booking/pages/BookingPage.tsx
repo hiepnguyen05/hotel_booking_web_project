@@ -10,7 +10,7 @@ export function BookingPage() {
   const { user } = useAuthStore();
   
   // Lấy thông tin từ state nếu có
-  const { checkInDate, checkOutDate, adults, children } = location.state || {};
+  const { checkIn, checkOut, adults, children } = location.state || {};
   
   const handleBack = () => {
     navigate(-1);
@@ -43,8 +43,8 @@ export function BookingPage() {
       user={user}
       onBack={handleBack}
       onBookingComplete={handleBookingComplete}
-      checkInDate={checkInDate}
-      checkOutDate={checkOutDate}
+      checkInDate={checkIn}
+      checkOutDate={checkOut}
       adults={adults}
       children={children}
     />

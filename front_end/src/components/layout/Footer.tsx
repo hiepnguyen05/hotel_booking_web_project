@@ -16,13 +16,13 @@ export function Footer({ onNavigate }: FooterProps) {
               Khách sạn 5 sao bên bờ biển, mang đến trải nghiệm nghỉ dưỡng sang trọng và đẳng cấp quốc tế.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
+              <a href="#" className="text-gray-400 hover:text-white transition-colors cursor-pointer">
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
+              <a href="#" className="text-gray-400 hover:text-white transition-colors cursor-pointer">
                 <Twitter className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
+              <a href="#" className="text-gray-400 hover:text-white transition-colors cursor-pointer">
                 <Instagram className="h-5 w-5" />
               </a>
             </div>
@@ -34,25 +34,25 @@ export function Footer({ onNavigate }: FooterProps) {
             <div className="space-y-2">
               <button 
                 onClick={() => onNavigate?.('home')}
-                className="block text-gray-400 hover:text-white transition-colors text-sm text-left"
+                className="block text-gray-400 hover:text-white transition-colors text-sm text-left cursor-pointer"
               >
                 Về khách sạn
               </button>
               <button 
                 onClick={() => onNavigate?.('rooms')}
-                className="block text-gray-400 hover:text-white transition-colors text-sm text-left"
+                className="block text-gray-400 hover:text-white transition-colors text-sm text-left cursor-pointer"
               >
                 Phòng & Suites
               </button>
               <button 
                 onClick={() => onNavigate?.('contact')}
-                className="block text-gray-400 hover:text-white transition-colors text-sm text-left"
+                className="block text-gray-400 hover:text-white transition-colors text-sm text-left cursor-pointer"
               >
                 Liên hệ
               </button>
               <button 
                 onClick={() => onNavigate?.('home')}
-                className="block text-gray-400 hover:text-white transition-colors text-sm text-left"
+                className="block text-gray-400 hover:text-white transition-colors text-sm text-left cursor-pointer"
               >
                 Ưu đãi đặc biệt
               </button>
@@ -63,16 +63,16 @@ export function Footer({ onNavigate }: FooterProps) {
           <div className="space-y-4">
             <h4 className="text-lg mb-4">Dịch vụ</h4>
             <div className="space-y-2">
-              <a href="#" className="block text-gray-400 hover:text-white transition-colors text-sm">
+              <a href="#" className="block text-gray-400 hover:text-white transition-colors text-sm cursor-pointer">
                 Spa & Wellness
               </a>
-              <a href="#" className="block text-gray-400 hover:text-white transition-colors text-sm">
+              <a href="#" className="block text-gray-400 hover:text-white transition-colors text-sm cursor-pointer">
                 Nhà hàng
               </a>
-              <a href="#" className="block text-gray-400 hover:text-white transition-colors text-sm">
+              <a href="#" className="block text-gray-400 hover:text-white transition-colors text-sm cursor-pointer">
                 Beach Club
               </a>
-              <a href="#" className="block text-gray-400 hover:text-white transition-colors text-sm">
+              <a href="#" className="block text-gray-400 hover:text-white transition-colors text-sm cursor-pointer">
                 Sự kiện & Hội nghị
               </a>
             </div>

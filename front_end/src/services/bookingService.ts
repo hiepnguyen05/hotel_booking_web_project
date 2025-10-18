@@ -397,6 +397,17 @@ class BookingService {
       };
     } catch (error: any) {
       console.error('[BOOKING SERVICE] Create MoMo payment error:', error);
+      
+      // Special handling for result code 1006
+      if (error.response && error.response.data && error.response.data.resultCode === 1006) {
+        console.log('[BOOKING SERVICE] Result code 1006: User denied payment confirmation');
+        return {
+          success: false,
+          error: "User denied payment confirmation. Please try again and complete the payment process in MoMo app.",
+          resultCode: 1006
+        };
+      }
+      
       return {
         success: false,
         error: error.message || 'Failed to create MoMo payment'

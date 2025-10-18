@@ -90,13 +90,13 @@ export function MoMoPayment({ onBack }: MoMoPaymentProps) {
         // If accessing via IP, still use localhost for the returnUrl
         // because MoMo needs to redirect to a publicly accessible URL
         if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-          returnUrl = `http://localhost:3000/payment-result`;
+          returnUrl = `${(import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'https://hotel-booking-web-project.onrender.com'}/payment-result`;
         } else {
           returnUrl = `${protocol}//${hostname}:3000/payment-result`;
         }
       } else {
         // Fallback
-        returnUrl = 'http://localhost:3000/payment-result';
+        returnUrl = `${(import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'https://hotel-booking-web-project.onrender.com'}/payment-result`;
       }
       
       console.log('[MOMO PAYMENT] Using returnUrl:', returnUrl);

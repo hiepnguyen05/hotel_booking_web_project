@@ -46,8 +46,8 @@ export function BookingForm({ roomId, user, onBack, onBookingComplete, checkInDa
   
   // Booking form state - updated to use dynamic data with proper defaults
   const [bookingData, setBookingData] = useState({
-    checkIn: checkInDate || new Date(Date.now() + 86400000).toISOString().split('T')[0], // Ngày mai
-    checkOut: checkOutDate || new Date(Date.now() + 172800000).toISOString().split('T')[0], // Ngày mốt
+    checkIn: checkInDate || new Date(Date.now() + 86400000).toISOString().split('T')[0], // Ngày mai hoặc từ props
+    checkOut: checkOutDate || new Date(Date.now() + 172800000).toISOString().split('T')[0], // Ngày mốt hoặc từ props
     adults: adults || 2,
     children: children || 0,
     roomCount: 1,
@@ -79,6 +79,19 @@ export function BookingForm({ roomId, user, onBack, onBookingComplete, checkInDa
       loadRoom();
     }
   }, [roomId]);
+  
+  // Update booking data when props change
+  useEffect(() => {
+    if (checkInDate || checkOutDate || adults || children) {
+      setBookingData(prev => ({
+        ...prev,
+        checkIn: checkInDate || prev.checkIn,
+        checkOut: checkOutDate || prev.checkOut,
+        adults: adults || prev.adults,
+        children: children || prev.children
+      }));
+    }
+  }, [checkInDate, checkOutDate, adults, children]);
   
   if (roomLoading) {
     return (
@@ -505,8 +518,8 @@ export function BookingForm({ roomId, user, onBack, onBookingComplete, checkInDa
                               ? (room as any).images[0].startsWith('http')
                                 ? (room as any).images[0]
                                 : (room as any).images[0].startsWith('/uploads')
-                                ? `http://localhost:5000${(room as any).images[0]}`
-                                : `http://localhost:5000${(room as any).images[0].startsWith('/') ? (room as any).images[0] : `/${(room as any).images[0]}`}`
+                                ? `${(import.meta as any).env?.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api'}${(room as any).images[0]}`
+                                : `${(import.meta as any).env?.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api'}${(room as any).images[0].startsWith('/') ? (room as any).images[0] : `/${(room as any).images[0]}`}`
                               : 'https://placehold.co/300x200?text=No+Image'
                           }
                           alt={(room as any).name}

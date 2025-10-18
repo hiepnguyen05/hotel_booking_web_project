@@ -143,7 +143,7 @@ export function getNetworkAccessUrl(): string {
   }
   
   // In server environment (Node.js)
-  return 'http://localhost:3000'; // Default Vite port
+  return (import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'https://hotel-booking-web-project.onrender.com'; // Default Vite port
 }
 
 /**

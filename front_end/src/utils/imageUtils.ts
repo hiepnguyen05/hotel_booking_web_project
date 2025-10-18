@@ -1,5 +1,5 @@
 // Get the API base URL from environment variables or use default
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api';
 
 /**
  * Get full image URL for displaying images from backend
@@ -54,4 +54,49 @@ export function getOptimizedImageUrl(imagePath: string, width?: number, height?:
   // For local uploads, we can't add query parameters for optimization
   // The optimization should be done on the server side
   return baseUrl;
+}
+
+/**
+ * Get high quality image URL for detail views
+ * @param imagePath - The image path from backend
+ * @returns High quality image URL
+ */
+export function getHighQualityImageUrl(imagePath: string): string {
+  const baseUrl = getFullImageUrl(imagePath);
+  
+  // For external images, return as is
+  if (imagePath.startsWith('http') && !imagePath.includes('localhost') && !imagePath.includes('127.0.0.1')) {
+    return baseUrl;
+  }
+  
+  // For local images, return the base URL (assuming they are already high quality)
+  return baseUrl;
+}
+
+/**
+ * Get enhanced quality image URL with additional parameters for better display
+ * @param imagePath - The image path from backend
+ * @returns Enhanced quality image URL
+ */
+export function getEnhancedImageUrl(imagePath: string): string {
+  // For now, return the high quality URL
+  // In the future, this could be enhanced with server-side image processing
+  return getHighQualityImageUrl(imagePath);
+}
+
+/**
+ * Process room images to remove duplicates and ensure quality
+ * @param images - Array of image paths
+ * @returns Array of unique, high quality image URLs
+ */
+export function processRoomImages(images: string[]): string[] {
+  if (!images || images.length === 0) {
+    return [];
+  }
+
+  // Remove duplicates while preserving order
+  const uniqueImages = [...new Set(images)];
+  
+  // Convert to full URLs
+  return uniqueImages.map(image => getEnhancedImageUrl(image));
 }

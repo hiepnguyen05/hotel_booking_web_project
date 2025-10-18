@@ -60,12 +60,14 @@ export function FeaturedHotels() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {featuredHotels.map((hotel) => (
-            <HotelCard key={hotel.id} hotel={hotel} />
+            <div key={hotel.id}>
+              <HotelCard hotel={hotel} />
+            </div>
           ))}
         </div>
         
         <div className="text-center mt-12">
-          <button className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-8 py-3 text-base font-medium text-white hover:bg-primary/90 transition-colors">
+          <button className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-8 py-3 text-base font-medium text-white hover:bg-primary/90 transition-colors cursor-pointer">
             Xem thêm khách sạn
           </button>
         </div>

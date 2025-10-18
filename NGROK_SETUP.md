@@ -46,13 +46,13 @@ Since we only need to expose the backend for MoMo callbacks, we can use a single
 
 The system is configured to work with a single ngrok tunnel:
 
-1. Frontend runs on localhost:3000 and can be accessed directly
+1. Frontend runs on https://hotel-booking-web-project.onrender.com and can be accessed directly
 2. Backend runs on localhost:5000 and is exposed via ngrok for MoMo callbacks
 3. When a user initiates a MoMo payment:
    - Frontend calls backend API to create payment
    - Backend creates MoMo payment with:
      * notifyUrl (ipnUrl): `https://abcd1234.ngrok-free.dev/api/bookings/momo/callback` (ngrok URL)
-     * returnUrl (redirectUrl): `http://localhost:3000/payment-result` (direct localhost access)
+     * returnUrl (redirectUrl): `https://hotel-booking-web-project.onrender.com/payment-result` (direct localhost access)
    - MoMo redirects user back to frontend after payment
    - MoMo calls backend callback URL via ngrok
    - Backend updates booking status
@@ -62,11 +62,11 @@ The system is configured to work with a single ngrok tunnel:
 
 1. Start both frontend and backend servers
 2. Run ngrok to expose only the backend (port 5000)
-3. Access the frontend at http://localhost:3000
+3. Access the frontend at https://hotel-booking-web-project.onrender.com
 4. Initiate a MoMo payment
 5. Complete the payment on your mobile device
 6. Verify that:
-   - User is redirected back to http://localhost:3000/payment-result
+   - User is redirected back to https://hotel-booking-web-project.onrender.com/payment-result
    - MoMo callback is received via ngrok
    - Backend updates booking status
    - Frontend displays updated status

@@ -138,49 +138,70 @@ class BookingController {
    */
   async createMoMoPayment(req, res) {
     try {
-      console.log('[CONTROLLER] createMoMoPayment called');
-      console.log('[CONTROLLER] Request params:', req.params);
-      console.log('[CONTROLLER] Request body:', req.body);
-      console.log('[CONTROLLER] Request headers:', {
+      console.log('[BOOKING CONTROLLER] === CREATE MOMO PAYMENT START ===');
+      console.log('[BOOKING CONTROLLER] Request details:');
+      console.log('[BOOKING CONTROLLER]   params:', req.params);
+      console.log('[BOOKING CONTROLLER]   body:', req.body);
+      console.log('[BOOKING CONTROLLER]   headers:', {
         authorization: req.headers.authorization,
         'content-type': req.headers['content-type']
       });
-      console.log('[CONTROLLER] User from auth middleware:', req.user);
+      console.log('[BOOKING CONTROLLER]   user:', req.user);
 
       const { bookingId } = req.params;
       const { returnUrl } = req.body;
 
       // Validate input
-      if (!bookingId || !returnUrl) {
-        console.log('[CONTROLLER] Missing required parameters:', { bookingId, returnUrl });
-        return formatResponse(res, 400, "Missing required parameters");
+      if (!bookingId) {
+        console.log('[BOOKING CONTROLLER] Missing required parameter: bookingId');
+        return formatResponse(res, 400, "Missing required parameter: bookingId");
       }
 
       // Check if user is authenticated
       if (!req.user) {
-        console.log('[CONTROLLER] User not authenticated');
+        console.log('[BOOKING CONTROLLER] User not authenticated');
         return formatResponse(res, 401, "User not authenticated");
       }
 
-      console.log('[CONTROLLER] Creating MoMo payment for booking:', bookingId);
+      console.log('[BOOKING CONTROLLER] Creating MoMo payment for booking:', bookingId);
 
       // Create MoMo payment, passing the request object for ngrok detection
       const result = await BookingService.createMoMoPayment(bookingId, returnUrl, null, req);
 
-      console.log('[CONTROLLER] MoMo payment creation result:', result);
+      console.log('[BOOKING CONTROLLER] MoMo payment creation result:', JSON.stringify(result, null, 2));
 
       if (result.success) {
         // Return payUrl to frontend instead of redirecting
-        console.log('[CONTROLLER] Returning MoMo payUrl to frontend:', result.data.payUrl);
+        console.log('[BOOKING CONTROLLER] Returning MoMo payUrl to frontend:', result.data.payUrl);
+        console.log('[BOOKING CONTROLLER] === CREATE MOMO PAYMENT SUCCESS ===');
         return formatResponse(res, 200, "MoMo payment created successfully", {
-          payUrl: result.data.payUrl
+          payUrl: result.data.payUrl,
+          orderId: result.data.orderId,  // Return the unique orderId for reference
+          requestId: result.data.requestId
         });
       } else {
-        console.error('[CONTROLLER] Failed to create MoMo payment:', result.error);
-        return formatResponse(res, 400, "Failed to create MoMo payment", { error: result.error });
+        console.error('[BOOKING CONTROLLER] Failed to create MoMo payment:', result.error);
+        
+        // Special handling for result code 1006
+        if (result.resultCode === 1006) {
+          console.log('[BOOKING CONTROLLER] Result code 1006: User denied payment confirmation');
+          console.log('[BOOKING CONTROLLER] This is not a system error, but user action');
+          return formatResponse(res, 400, "User denied payment confirmation. Please try again and complete the payment process in MoMo app.", { 
+            error: result.error,
+            resultCode: result.resultCode
+          });
+        }
+        
+        // Return specific error information to frontend
+        console.log('[BOOKING CONTROLLER] === CREATE MOMO PAYMENT FAILED ===');
+        return formatResponse(res, 400, "Failed to create MoMo payment", { 
+          error: result.error,
+          resultCode: result.resultCode
+        });
       }
     } catch (error) {
-      console.error("[CONTROLLER] Create MoMo payment error:", error);
+      console.error("[BOOKING CONTROLLER] === CREATE MOMO PAYMENT ERROR ===");
+      console.error("[BOOKING CONTROLLER] Create MoMo payment error:", error);
       return formatResponse(res, 500, error.message);
     }
   }
@@ -225,7 +246,7 @@ class BookingController {
 
       // Redirect to payment result page with all MoMo parameters
       // This will allow the frontend to display the same information
-      const paymentResultUrl = `http://localhost:3000/payment-result?${new URLSearchParams(callbackData).toString()}`;
+      const paymentResultUrl = `${process.env.FRONTEND_URL || 'https://hotel-booking-web-project.onrender.com'}/payment-result?${new URLSearchParams(callbackData).toString()}`;
       console.log("[CALLBACK] Redirecting to payment result page:", paymentResultUrl);
       return res.redirect(302, paymentResultUrl);
 

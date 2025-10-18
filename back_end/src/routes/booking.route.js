@@ -173,11 +173,51 @@ router.get("/test-ngrok", (req, res) => {
   res.json({
     ngrokUrl: ngrokUrl,
     callbackUrl: `${ngrokUrl}/api/bookings/momo/callback`,
-    redirectUrl: `http://localhost:3000/payment-result`
+    redirectUrl: `${process.env.FRONTEND_URL || 'https://hotel-booking-web-project.onrender.com'}/payment-result`
   });
 });
 
 // Simple test route for MoMo payment
+router.post("/test-payment/:bookingId", async (req, res) => {
+  try {
+    console.log('[TEST PAYMENT] Creating MoMo payment for booking:', req.params.bookingId);
+    console.log('[TEST PAYMENT] Request body:', req.body);
+    
+    const { bookingId } = req.params;
+    const { returnUrl } = req.body;
+    
+    // Create MoMo payment without authentication
+    const result = await require("../services/booking.service").createMoMoPayment(
+      bookingId,
+      returnUrl || 'http://localhost:3001/payment-result',
+      null,
+      req
+    );
+    
+    if (result.success) {
+      console.log('[TEST PAYMENT] MoMo payment created successfully');
+      return res.status(200).json({
+        success: true,
+        message: "MoMo payment created successfully",
+        data: result.data
+      });
+    } else {
+      console.error('[TEST PAYMENT] Failed to create MoMo payment:', result.error);
+      return res.status(400).json({
+        success: false,
+        message: "Failed to create MoMo payment",
+        error: result.error,
+        resultCode: result.resultCode
+      });
+    }
+  } catch (error) {
+    console.error('[TEST PAYMENT] Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
 
 // Routes for user
 router.get("/:id", AuthMiddleware.authenticate, BookingController.getBookingById);

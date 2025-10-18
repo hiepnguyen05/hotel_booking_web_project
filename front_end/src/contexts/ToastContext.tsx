@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { ToastNotification } from '../components/ToastNotification';
+import React, { createContext, useContext, useState } from 'react';
+import { SimpleToastNotification } from '../components/SimpleToastNotification';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -15,18 +15,18 @@ interface ToastContextType {
   removeToast: (id: string) => void;
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
+const ToastContext = createContext(undefined);
 
-export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+export function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([]);
 
   const addToast = (title: string, message: string, type: ToastType) => {
     const id = Math.random().toString(36).substr(2, 9);
-    const newToast: Toast = { id, title, message, type };
+    const newToast = { id, title, message, type };
     
     setToasts((prev) => [...prev, newToast]);
     
-    // Tự động xóa toast sau 5 giây
+    // Automatically remove toast after 5 seconds
     setTimeout(() => {
       removeToast(id);
     }, 5000);
@@ -42,7 +42,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map((toast) => (
           <div key={toast.id}>
-            <ToastNotification
+            <SimpleToastNotification
               title={toast.title}
               message={toast.message}
               type={toast.type}

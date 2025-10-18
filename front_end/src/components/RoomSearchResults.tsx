@@ -20,9 +20,10 @@ import {
 } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { roomService, SearchRoomResult } from "../services/roomService";
+import { getFullImageUrl, getEnhancedImageUrl, processRoomImages } from "../utils/imageUtils";
 
 // Get the API base URL from environment variables or use default
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api';
 
 interface RoomSearchResultsProps {
   searchParams: {
@@ -97,36 +98,6 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
     return iconMap[amenity.toLowerCase()] || <Star className="h-4 w-4" />;
   };
 
-  const getFullImageUrl = (imagePath: string) => {
-    // If no image path, return placeholder
-    if (!imagePath) {
-      return 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHJvb218ZW58MXx8fHwxNzU5MjI5MDY0fDA&ixlib=rb-4.1.0&q=80&w=1080';
-    }
-    
-    // If the image path is already a full URL, return it as is
-    if (imagePath.startsWith('http')) {
-      return imagePath;
-    }
-    
-    // If it's a relative path that starts with /uploads, serve it from the base URL without /api
-    if (imagePath.startsWith('/uploads')) {
-      // Handle case where API_BASE_URL might end with /api or not
-      const baseUrlWithoutApi = API_BASE_URL.replace('/api', '');
-      // Remove trailing slash if exists and ensure no double slashes
-      const cleanBaseUrl = baseUrlWithoutApi.endsWith('/') ? baseUrlWithoutApi.slice(0, -1) : baseUrlWithoutApi;
-      // Ensure imagePath starts with /
-      const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-      return `${cleanBaseUrl}${cleanPath}`;
-    }
-    
-    // For other relative paths, prepend the API base URL
-    // Remove leading slash if it exists to avoid double slashes
-    const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
-    // Ensure API_BASE_URL doesn't end with a slash
-    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
-    return `${baseUrl}/${cleanPath}`;
-  };
-
   const calculateNights = () => {
     const checkIn = new Date(searchParams.checkIn);
     const checkOut = new Date(searchParams.checkOut);
@@ -163,11 +134,23 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
           <Button
             variant="ghost"
             size="default"
-            onClick={onBack}
+            onClick={() => navigate(-1)}
             className="mb-2"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Quay lại tìm kiếm
+          </Button>
+          <Button
+            variant="ghost"
+            size="default"
+            onClick={() => {
+              // Quay về trang chủ bằng cách gọi onBack (đặt searchParams về null)
+              if (onBack) onBack();
+            }}
+            className="mb-2 ml-2"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Về trang chủ
           </Button>
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -229,9 +212,15 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
                   <div className="lg:col-span-1">
                     <div className="h-64 lg:h-full">
                       <ImageWithFallback
-                        src={room.images?.[0] ? getFullImageUrl(room.images[0]) : 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHJvb218ZW58MXx8fHwxNzU5MjI5MDY0fDA&ixlib=rb-4.1.0&q=80&w=1080'}
+                        src={room.images?.[0] ? getEnhancedImageUrl(room.images[0]) : 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHJvb218ZW58MXx8fHwxNzU5MjI5MDY0fDA&ixlib=rb-4.1.0&q=80&w=1080'}
                         alt={room.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover rounded-l-lg"
+                        style={{ 
+                          imageRendering: 'crisp-edges',
+                          contain: 'layout style paint'
+                        }}
+                        loading="lazy"
+                        quality="medium"
                       />
                     </div>
                   </div>
@@ -304,7 +293,8 @@ export function RoomSearchResults({ searchParams, onBack, onBookRoom }: RoomSear
                                   checkIn: searchParams.checkIn,
                                   checkOut: searchParams.checkOut,
                                   adults: searchParams.adults,
-                                  children: searchParams.children
+                                  children: searchParams.children,
+                                  fromSearch: true
                                 }
                               });
                             } else {

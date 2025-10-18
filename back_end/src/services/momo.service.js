@@ -27,31 +27,45 @@ class MoMoService {
    */
   async createPayment(orderInfo, orderId, amount, returnUrl, notifyUrl) {
     try {
-      console.log('[MOMO SERVICE] Creating payment with:');
-      console.log('[MOMO SERVICE] Order Info:', orderInfo);
-      console.log('[MOMO SERVICE] Order ID:', orderId);
-      console.log('[MOMO SERVICE] Amount:', amount);
-      console.log('[MOMO SERVICE] Return URL (redirectUrl):', returnUrl);
-      console.log('[MOMO SERVICE] Notify URL (ipnUrl):', notifyUrl);
+      console.log('[MOMO SERVICE] === CREATE PAYMENT START ===');
+      console.log('[MOMO SERVICE] Input parameters:');
+      console.log('[MOMO SERVICE]   orderInfo:', orderInfo);
+      console.log('[MOMO SERVICE]   orderId:', orderId);
+      console.log('[MOMO SERVICE]   amount:', amount);
+      console.log('[MOMO SERVICE]   returnUrl:', returnUrl);
+      console.log('[MOMO SERVICE]   notifyUrl:', notifyUrl);
+      console.log('[MOMO SERVICE]   partnerCode:', this.partnerCode);
+      console.log('[MOMO SERVICE]   accessKey:', this.accessKey);
+      console.log('[MOMO SERVICE]   secretKey (first 6 chars):', (this.secretKey || '').slice(0,6) + '***');
+      console.log('[MOMO SERVICE]   endpoint:', this.endpoint);
       
-      const requestId = orderId;
+      // Generate a unique orderId and requestId to avoid duplicate order ID errors
+      const uniqueOrderId = orderId + '_' + Date.now();
+      const requestId = uniqueOrderId;
       const extraData = ''; // Pass more data if needed
       const requestType = "captureWallet";
       const lang = "vi";
       const autoCapture = true;
       const orderGroupId = '';
 
+      console.log('[MOMO SERVICE] Generated unique IDs:');
+      console.log('[MOMO SERVICE]   uniqueOrderId:', uniqueOrderId);
+      console.log('[MOMO SERVICE]   requestId:', requestId);
+
       // Create raw signature - ORDER IS IMPORTANT!
-      const rawSignature = "accessKey=" + this.accessKey + 
-                          "&amount=" + amount + 
-                          "&extraData=" + extraData + 
-                          "&ipnUrl=" + notifyUrl + 
-                          "&orderId=" + orderId + 
-                          "&orderInfo=" + orderInfo + 
-                          "&partnerCode=" + this.partnerCode + 
-                          "&redirectUrl=" + returnUrl + 
-                          "&requestId=" + requestId + 
-                          "&requestType=" + requestType;
+      // According to MoMo documentation, the order should be:
+      // accessKey, amount, extraData, ipnUrl, orderId, orderInfo, partnerCode, redirectUrl, requestId, requestType
+      const rawSignature = 
+        "accessKey=" + this.accessKey + 
+        "&amount=" + amount + 
+        "&extraData=" + extraData + 
+        "&ipnUrl=" + notifyUrl + 
+        "&orderId=" + uniqueOrderId + 
+        "&orderInfo=" + orderInfo + 
+        "&partnerCode=" + this.partnerCode + 
+        "&redirectUrl=" + returnUrl + 
+        "&requestId=" + requestId + 
+        "&requestType=" + requestType;
 
       console.log('[MOMO SERVICE] Raw signature string:', rawSignature);
       
@@ -70,7 +84,7 @@ class MoMoService {
         storeId: "MomoTestStore",
         requestId: requestId,
         amount: amount,
-        orderId: orderId,
+        orderId: uniqueOrderId,
         orderInfo: orderInfo,
         redirectUrl: returnUrl,  // This is where MoMo redirects user after payment (using ngrok)
         ipnUrl: notifyUrl,       // This is where MoMo sends payment result (using ngrok)
@@ -90,21 +104,32 @@ class MoMoService {
       console.log('[MOMO SERVICE] Response received from MoMo');
 
       console.log('[MOMO SERVICE] Response status:', response.status);
+      console.log('[MOMO SERVICE] Response headers:', JSON.stringify(response.headers, null, 2));
       console.log('[MOMO SERVICE] Response data:', JSON.stringify(response.data, null, 2));
 
       // Check if response has error
       if (response.data.resultCode !== 0) {
         console.error('[MOMO SERVICE] MoMo API error:', response.data.message);
+        console.error('[MOMO SERVICE] MoMo result code:', response.data.resultCode);
+        
+        // Special handling for result code 1006
+        if (response.data.resultCode === 1006) {
+          console.log('[MOMO SERVICE] Result code 1006: User denied payment confirmation');
+          console.log('[MOMO SERVICE] This is not a system error, but user action');
+        }
+        
         return {
           success: false,
-          error: response.data.message || 'MoMo API error'
+          error: response.data.message || 'MoMo API error',
+          resultCode: response.data.resultCode
         };
       }
 
+      console.log('[MOMO SERVICE] === CREATE PAYMENT SUCCESS ===');
       return {
         success: true,
         data: {
-          orderId: orderId,
+          orderId: uniqueOrderId,
           requestId: requestId,
           payUrl: response.data.payUrl,
           qrCodeUrl: response.data.qrCodeUrl,
@@ -113,6 +138,7 @@ class MoMoService {
         }
       };
     } catch (error) {
+      console.error('[MOMO SERVICE] === CREATE PAYMENT ERROR ===');
       console.error('[MOMO SERVICE] MoMo payment creation error:', error);
       if (error.response) {
         console.error('[MOMO SERVICE] Response data:', error.response.data);
@@ -120,7 +146,8 @@ class MoMoService {
         console.error('[MOMO SERVICE] Response headers:', error.response.headers);
         return {
           success: false,
-          error: error.response.data.message || error.message
+          error: error.response.data.message || error.message,
+          resultCode: error.response.data.resultCode
         };
       }
       return {

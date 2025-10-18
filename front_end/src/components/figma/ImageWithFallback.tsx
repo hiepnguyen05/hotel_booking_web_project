@@ -8,6 +8,8 @@ export interface ImageWithFallbackProps {
   alt?: string;
   className?: string;
   style?: any;
+  loading?: "eager" | "lazy";
+  quality?: "low" | "medium" | "high";
   [key: string]: any;
 }
 
@@ -16,6 +18,8 @@ export function ImageWithFallback({
   alt,
   className,
   style,
+  loading = "lazy",
+  quality = "medium",
   ...rest
 }: ImageWithFallbackProps) {
   const [didError, setDidError] = useState(false)
@@ -45,6 +49,20 @@ export function ImageWithFallback({
     )
   }
 
+  // Quality-based styling
+  const qualityStyles = {
+    low: {
+      imageRendering: 'pixelated',
+    },
+    medium: {
+      imageRendering: 'crisp-edges',
+    },
+    high: {
+      imageRendering: 'crisp-edges',
+      imageResolution: 'from-image',
+    }
+  };
+
   return didError ? (
     <div
       className={`inline-block bg-gray-100 text-center align-middle ${className ?? ''}`}
@@ -59,7 +77,14 @@ export function ImageWithFallback({
       src={src}
       alt={alt}
       className={className}
-      style={style}
+      style={{
+        ...style,
+        ...qualityStyles[quality],
+        WebkitFontSmoothing: 'antialiased',
+        MozOsxFontSmoothing: 'grayscale',
+        contain: 'layout style paint',
+      }}
+      loading={loading}
       {...rest}
       onError={handleError}
       onLoad={() => console.log('Image loaded successfully:', src)}

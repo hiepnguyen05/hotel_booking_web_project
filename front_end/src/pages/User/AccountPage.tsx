@@ -43,10 +43,10 @@ export function AccountPage() {
     phone: '0901234567', // Mock data
     address: '123 Đường ABC, Quận 1, TP.HCM' // Mock data
   });
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCancelForm, setShowCancelForm] = useState(false);
-  const [selectedBookingId, setSelectedBookingId] = useState<string>('');
+  const [selectedBookingId, setSelectedBookingId] = useState('');
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -155,7 +155,7 @@ export function AccountPage() {
     }
   };
 
-  const canCancelBooking = (booking: Booking) => {
+  const canCancelBooking = (booking: any) => {
     // If there's already a cancellation request, cannot cancel again
     if (booking.cancellationRequest) {
       return false;
@@ -224,6 +224,31 @@ export function AccountPage() {
       default:
         return <Badge variant="outline">{cancellationRequest.status}</Badge>;
     }
+  };
+
+  // Function to get room image URL
+  const getRoomImageUrl = (booking: any) => {
+    // If room is an object with images array
+    if (booking.room && typeof booking.room === 'object' && 'images' in booking.room && Array.isArray(booking.room.images) && booking.room.images.length > 0) {
+      // Assuming images are stored with full URLs or relative to the backend
+      const image = booking.room.images[0];
+      // If it's already a full URL, return as is
+      if (image.startsWith('http')) {
+        return image;
+      }
+      // Otherwise, construct the full URL
+      return `${(import.meta as any).env?.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api'}${image}`;
+    }
+    // Default placeholder
+    return '';
+  };
+
+  // Function to get room name
+  const getRoomName = (booking: any) => {
+    if (booking.room && typeof booking.room === 'object' && 'name' in booking.room) {
+      return booking.room.name;
+    }
+    return `Phòng ${booking.room}`;
   };
 
   if (!isAuthenticated) {
@@ -405,12 +430,26 @@ export function AccountPage() {
                             {/* Room Info */}
                             <div className="flex gap-4">
                               <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                <ImageIcon className="h-6 w-6 text-gray-400" />
+                                {getRoomImageUrl(booking) ? (
+                                  <img 
+                                    src={getRoomImageUrl(booking)} 
+                                    alt={getRoomName(booking)} 
+                                    className="w-full h-full object-cover rounded-lg"
+                                    onError={(e) => {
+                                      // Handle image loading error
+                                      const target = e.target as HTMLImageElement;
+                                      target.onerror = null;
+                                      target.parentElement!.innerHTML = '<svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
+                                    }}
+                                  />
+                                ) : (
+                                  <ImageIcon className="h-6 w-6 text-gray-400" />
+                                )}
                               </div>
                             
                               <div>
                                 <h3 className="font-semibold text-lg">
-                                  {booking.room?.name || `Phòng ${booking.room}`}
+                                  {getRoomName(booking)}
                                 </h3>
                                 <p className="text-sm text-gray-500">
                                   Mã đặt phòng: {booking.id}
