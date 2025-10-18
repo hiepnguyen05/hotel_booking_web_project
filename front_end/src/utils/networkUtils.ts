@@ -78,19 +78,18 @@ export async function getLocalIPAddress(): Promise<string | null> {
  * In production, it uses the deployed URL
  */
 export function getApiBaseUrl(): string {
+  // @ts-ignore: import.meta.env is not properly typed in TypeScript
+  if (import.meta.env?.VITE_API_BASE_URL) {
+    // @ts-ignore: import.meta.env is not properly typed in TypeScript
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  
   // Check if we're running in development
   // @ts-ignore: import.meta.env is not properly typed in TypeScript
   const isDevelopment = import.meta.env?.MODE === 'development';
   
   // Check if we're using ngrok
   const usingNgrok = isUsingNgrok();
-  
-  // If we have a specific API base URL in environment variables, use it
-  // @ts-ignore: import.meta.env is not properly typed in TypeScript
-  if (import.meta.env?.VITE_API_BASE_URL) {
-    // @ts-ignore: import.meta.env is not properly typed in TypeScript
-    return import.meta.env.VITE_API_BASE_URL;
-  }
   
   // In development with ngrok, construct URLs appropriately
   if (isDevelopment && usingNgrok) {
