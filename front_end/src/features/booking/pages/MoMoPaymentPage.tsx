@@ -112,9 +112,18 @@ export function MoMoPaymentPage() {
         window.location.href = result.data.payUrl;
       } else {
         console.error('[MOMO PAYMENT PAGE] Failed to create payment:', result.error || 'Unknown error');
-        toast.error('Tạo thanh toán thất bại', {
-          description: result.error || 'Vui lòng thử lại sau'
-        });
+        
+        // Special handling for result code 1006 (user denied payment)
+        if (result.resultCode === 1006) {
+          toast.error('Thanh toán bị từ chối', {
+            description: 'Bạn đã từ chối xác nhận thanh toán trong ứng dụng MoMo. Vui lòng thử lại và xác nhận thanh toán để tiếp tục.'
+          });
+        } else {
+          toast.error('Tạo thanh toán thất bại', {
+            description: result.error || 'Vui lòng thử lại sau'
+          });
+        }
+        
         setLoading(false);
       }
       

@@ -369,6 +369,7 @@ class BookingService {
             console.log('[BOOKING SERVICE] Order info:', orderInfo);
 
             // Use NGROK URL from environment variables for backend callback
+            console.log('[BOOKING SERVICE] process.env.NGROK_URL:', process.env.NGROK_URL);
             const NGROK_URL = process.env.NGROK_URL || 'https://braylen-noisiest-biennially.ngrok-free.dev';
             console.log('[BOOKING SERVICE] NGROK_URL from env:', NGROK_URL);
 
@@ -396,6 +397,14 @@ class BookingService {
                 finalNotifyUrl
             });
 
+            // Log parameters before calling MoMoService.createPayment
+            console.log('[BOOKING SERVICE] Parameters for MoMoService.createPayment:');
+            console.log('[BOOKING SERVICE]   orderInfo:', orderInfo);
+            console.log('[BOOKING SERVICE]   bookingId:', bookingId);
+            console.log('[BOOKING SERVICE]   totalPrice:', booking.totalPrice);
+            console.log('[BOOKING SERVICE]   finalReturnUrl:', finalReturnUrl);
+            console.log('[BOOKING SERVICE]   finalNotifyUrl:', finalNotifyUrl);
+            
             const paymentResult = await MoMoService.createPayment(
                 orderInfo,
                 bookingId,         // orderId - using bookingId as base for unique orderId
@@ -409,6 +418,17 @@ class BookingService {
             // Check if payment creation was successful
             if (!paymentResult.success) {
                 console.error('[BOOKING SERVICE] Failed to create MoMo payment:', paymentResult.error);
+                
+                // Special handling for result code 1006 (user denied payment)
+                if (paymentResult.resultCode === 1006) {
+                    console.log('[BOOKING SERVICE] User denied payment confirmation (resultCode 1006)');
+                    return {
+                        success: false,
+                        error: 'Người dùng đã từ chối xác nhận thanh toán trong ứng dụng MoMo. Vui lòng thử lại và xác nhận thanh toán để tiếp tục.',
+                        resultCode: 1006
+                    };
+                }
+                
                 return paymentResult;
             }
             
@@ -501,6 +521,7 @@ class BookingService {
                 console.log("[SERVICE] User denied payment, updating booking status");
                 // User denied payment
                 booking.paymentStatus = 'failed';
+                booking.status = 'pending'; // Keep booking as pending so user can try again
                 console.log("[SERVICE] Updated booking status to failed due to user denial");
             } else {
                 console.log("[SERVICE] Payment failed, updating booking status");

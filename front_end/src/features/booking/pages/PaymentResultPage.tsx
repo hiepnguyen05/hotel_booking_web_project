@@ -137,12 +137,20 @@ export function PaymentResultPage() {
 
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <h4 className="font-semibold text-yellow-800 mb-2">Hướng dẫn</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
-                  <li>• Kiểm tra lại số dư tài khoản MoMo của bạn</li>
-                  <li>• Đảm bảo thông tin thẻ ngân hàng đã được liên kết đúng</li>
-                  <li>• Thử lại quá trình thanh toán</li>
-                  <li>• Liên hệ hỗ trợ nếu vấn đề vẫn tiếp diễn</li>
-                </ul>
+                {resultCode === '1006' ? (
+                  <ul className="text-sm text-yellow-700 space-y-1">
+                    <li>• Bạn đã từ chối xác nhận thanh toán trong ứng dụng MoMo</li>
+                    <li>• Vui lòng thử lại và xác nhận thanh toán để tiếp tục</li>
+                    <li>• Đảm bảo bạn nhấn "Xác nhận" khi MoMo yêu cầu xác nhận giao dịch</li>
+                  </ul>
+                ) : (
+                  <ul className="text-sm text-yellow-700 space-y-1">
+                    <li>• Kiểm tra lại số dư tài khoản MoMo của bạn</li>
+                    <li>• Đảm bảo thông tin thẻ ngân hàng đã được liên kết đúng</li>
+                    <li>• Thử lại quá trình thanh toán</li>
+                    <li>• Liên hệ hỗ trợ nếu vấn đề vẫn tiếp diễn</li>
+                  </ul>
+                )}
               </div>
 
               <div className="flex space-x-3">

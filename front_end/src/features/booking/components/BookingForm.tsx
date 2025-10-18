@@ -15,6 +15,7 @@ import { bookingService, CreateBookingData } from '../../../services/bookingServ
 import { useAuthStore } from '../../../store/authStore';
 
 import { isUsingNgrok } from '../../../utils/networkUtils';
+import { getFullImageUrl } from '../../../utils/imageUtils';
 
 interface Room {
   _id: string;
@@ -515,11 +516,7 @@ export function BookingForm({ roomId, user, onBack, onBookingComplete, checkInDa
                         <ImageWithFallback
                           src={
                             (room as any).images && (room as any).images.length > 0
-                              ? (room as any).images[0].startsWith('http')
-                                ? (room as any).images[0]
-                                : (room as any).images[0].startsWith('/uploads')
-                                ? `${(import.meta as any).env?.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api'}${(room as any).images[0]}`
-                                : `${(import.meta as any).env?.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api'}${(room as any).images[0].startsWith('/') ? (room as any).images[0] : `/${(room as any).images[0]}`}`
+                              ? getFullImageUrl((room as any).images[0])
                               : 'https://placehold.co/300x200?text=No+Image'
                           }
                           alt={(room as any).name}

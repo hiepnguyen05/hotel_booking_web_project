@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const BookingController = require("../controllers/booking.controller");
 const CancellationRequestController = require("../controllers/cancellationRequest.controller");
-const TestController = require("../controllers/test.controller");
+
 const AuthMiddleware = require("../middlewares/auth.middleware");
 const { validateBooking } = require("../validations/booking.validation");
 const { updateBooking: updateBookingValidation } = require("../validations/booking.validation");
@@ -135,8 +135,7 @@ router.get("/test-momo-redirect/:bookingId", async (req, res) => {
   }
 });
 
-// Test route
-router.get("/test-email", TestController.sendTestEmail);
+
 
 // Parameterized routes - MUST be defined after static routes
 // IMPORTANT: More specific routes should be defined BEFORE less specific ones

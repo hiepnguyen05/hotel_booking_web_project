@@ -28,6 +28,7 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { bookingService } from '../../services/bookingService';
 import { Booking } from '../../types/booking';
+import { getFullImageUrl } from '../../utils/imageUtils';
 
 export function AccountPage() {
   const navigate = useNavigate();
@@ -232,12 +233,7 @@ export function AccountPage() {
     if (booking.room && typeof booking.room === 'object' && 'images' in booking.room && Array.isArray(booking.room.images) && booking.room.images.length > 0) {
       // Assuming images are stored with full URLs or relative to the backend
       const image = booking.room.images[0];
-      // If it's already a full URL, return as is
-      if (image.startsWith('http')) {
-        return image;
-      }
-      // Otherwise, construct the full URL
-      return `${(import.meta as any).env?.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api'}${image}`;
+      return getFullImageUrl(image);
     }
     // Default placeholder
     return '';

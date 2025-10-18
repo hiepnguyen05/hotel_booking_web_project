@@ -3,6 +3,13 @@ const crypto = require('crypto');
 
 class MoMoService {
   constructor() {
+    // Log environment variables for debugging
+    console.log('[MOMO SERVICE] Environment variables:');
+    console.log('[MOMO SERVICE]   MOMO_PARTNER_CODE:', process.env.MOMO_PARTNER_CODE);
+    console.log('[MOMO SERVICE]   MOMO_ACCESS_KEY:', process.env.MOMO_ACCESS_KEY);
+    console.log('[MOMO SERVICE]   MOMO_SECRET_KEY:', process.env.MOMO_SECRET_KEY);
+    console.log('[MOMO SERVICE]   MOMO_ENDPOINT:', process.env.MOMO_ENDPOINT);
+    
     // MoMo Sandbox/Test environment configuration
     this.partnerCode = process.env.MOMO_PARTNER_CODE || 'MOMO';
     this.accessKey = process.env.MOMO_ACCESS_KEY || 'F8BBA842ECF85';

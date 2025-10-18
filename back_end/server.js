@@ -56,6 +56,14 @@ function getLocalIP() {
   return 'localhost';
 }
 
+// Log environment variables for debugging
+console.log('[SERVER] Environment variables:');
+console.log('[SERVER]   NGROK_URL:', process.env.NGROK_URL);
+console.log('[SERVER]   MOMO_PARTNER_CODE:', process.env.MOMO_PARTNER_CODE);
+console.log('[SERVER]   MOMO_ACCESS_KEY:', process.env.MOMO_ACCESS_KEY);
+console.log('[SERVER]   MOMO_SECRET_KEY:', process.env.MOMO_SECRET_KEY);
+console.log('[SERVER]   MOMO_ENDPOINT:', process.env.MOMO_ENDPOINT);
+
 // Enhanced middleware to log access from different devices with more details
 app.use((req, res, next) => {
   const clientIP = req.headers['x-forwarded-for'] || 
