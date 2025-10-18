@@ -41,8 +41,17 @@ class MoMoService {
       const autoCapture = true;
       const orderGroupId = '';
 
-      // Create raw signature
-      const rawSignature = "accessKey=" + this.accessKey + "&amount=" + amount + "&extraData=" + extraData + "&ipnUrl=" + notifyUrl + "&orderId=" + orderId + "&orderInfo=" + orderInfo + "&partnerCode=" + this.partnerCode + "&redirectUrl=" + returnUrl + "&requestId=" + requestId + "&requestType=" + requestType;
+      // Create raw signature - ORDER IS IMPORTANT!
+      const rawSignature = "accessKey=" + this.accessKey + 
+                          "&amount=" + amount + 
+                          "&extraData=" + extraData + 
+                          "&ipnUrl=" + notifyUrl + 
+                          "&orderId=" + orderId + 
+                          "&orderInfo=" + orderInfo + 
+                          "&partnerCode=" + this.partnerCode + 
+                          "&redirectUrl=" + returnUrl + 
+                          "&requestId=" + requestId + 
+                          "&requestType=" + requestType;
 
       console.log('[MOMO SERVICE] Raw signature string:', rawSignature);
       
@@ -83,6 +92,15 @@ class MoMoService {
       console.log('[MOMO SERVICE] Response status:', response.status);
       console.log('[MOMO SERVICE] Response data:', JSON.stringify(response.data, null, 2));
 
+      // Check if response has error
+      if (response.data.resultCode !== 0) {
+        console.error('[MOMO SERVICE] MoMo API error:', response.data.message);
+        return {
+          success: false,
+          error: response.data.message || 'MoMo API error'
+        };
+      }
+
       return {
         success: true,
         data: {
@@ -100,6 +118,10 @@ class MoMoService {
         console.error('[MOMO SERVICE] Response data:', error.response.data);
         console.error('[MOMO SERVICE] Response status:', error.response.status);
         console.error('[MOMO SERVICE] Response headers:', error.response.headers);
+        return {
+          success: false,
+          error: error.response.data.message || error.message
+        };
       }
       return {
         success: false,

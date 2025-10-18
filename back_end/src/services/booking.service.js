@@ -405,6 +405,13 @@ class BookingService {
             );
 
             console.log('[SERVICE] MoMo payment result:', JSON.stringify(paymentResult, null, 2));
+            
+            // Check if payment creation was successful
+            if (!paymentResult.success) {
+                console.error('[SERVICE] Failed to create MoMo payment:', paymentResult.error);
+                return paymentResult;
+            }
+            
             return paymentResult;
         } catch (error) {
             console.error("[SERVICE] Create MoMo payment error:", error);
