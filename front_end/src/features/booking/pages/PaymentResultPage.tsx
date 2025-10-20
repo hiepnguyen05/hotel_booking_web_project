@@ -19,15 +19,28 @@ export function PaymentResultPage() {
   const orderId = urlParams.get('orderId');
   const resultCode = urlParams.get('resultCode');
 
+  // Extract booking ID from MoMo orderId (remove timestamp if present)
+  const extractBookingId = (orderId: string | null) => {
+    if (!orderId) return null;
+    
+    // If orderId contains timestamp (separated by underscore), extract the actual booking ID
+    // Format: bookingId_timestamp
+    const parts = orderId.split('_');
+    return parts[0]; // Return the first part which is the actual booking ID
+  };
+
   useEffect(() => {
     // Set payment success status based on resultCode from MoMo
     if (resultCode !== '0') {
       setPaymentSuccess(false);
     }
     
+    // Extract actual booking ID from MoMo orderId
+    const bookingId = extractBookingId(orderId);
+    
     // If we have an orderId from MoMo, fetch the booking data
-    if (orderId) {
-      fetchBookingData(orderId);
+    if (bookingId) {
+      fetchBookingData(bookingId);
     } else {
       // If no orderId, show error
       setError('Không tìm thấy thông tin đặt phòng');
@@ -147,7 +160,7 @@ export function PaymentResultPage() {
                   <ul className="text-sm text-yellow-700 space-y-1">
                     <li>• Kiểm tra lại số dư tài khoản MoMo của bạn</li>
                     <li>• Đảm bảo thông tin thẻ ngân hàng đã được liên kết đúng</li>
-                    <li>• Thử lại quá trình thanh toán</li>
+                    <li>Thử lại quá trình thanh toán</li>
                     <li>• Liên hệ hỗ trợ nếu vấn đề vẫn tiếp diễn</li>
                   </ul>
                 )}
