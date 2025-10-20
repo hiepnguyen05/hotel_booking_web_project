@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Loader2 } from 'lucide-react';
 import { bookingService } from '../../../services/bookingService';
 import { toast } from 'sonner';
-import { isUsingNgrok } from '../../../utils/networkUtils';
+import { isUsingNgrok, isDeployedEnvironment } from '../../../utils/networkUtils';
 import { useAuthStore } from '../../../store/authStore';
 
 export function MoMoPaymentPage() {
@@ -74,21 +74,36 @@ export function MoMoPaymentPage() {
       const usingNgrok = isUsingNgrok();
       console.log('[MOMO PAYMENT PAGE] Using ngrok:', usingNgrok);
       
+      // Check if we're in a production environment (deployed to Vercel or similar)
+      const isDeployed = isDeployedEnvironment();
+      const isProduction = (import.meta as any).env?.VITE_NODE_ENV === 'production';
+      
+      console.log('[MOMO PAYMENT PAGE] Is deployed:', isDeployed);
+      console.log('[MOMO PAYMENT PAGE] Is production:', isProduction);
+      
       // Create returnUrl - this is where MoMo will redirect after payment
       let returnUrl;
       if (usingNgrok && typeof window !== 'undefined') {
-        // If using ngrok, use the ngrok URL
+        // If using ngrok, use the ngrok URL for frontend
+        returnUrl = `${window.location.origin}/payment-result`;
+      } else if (isDeployed && typeof window !== 'undefined') {
+        // If deployed to a public URL (Vercel, Netlify, etc.), use the current origin
         returnUrl = `${window.location.origin}/payment-result`;
       } else if (typeof window !== 'undefined') {
         const protocol = window.location.protocol;
         const hostname = window.location.hostname;
         
-        // If accessing via IP, still use localhost for the returnUrl
-        // because MoMo needs to redirect to a publicly accessible URL
-        if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-          returnUrl = `${(import.meta as any).env?.VITE_API_BASE_URL?.replace('/api', '') || 'https://hotel-booking-web-project.onrender.com'}/payment-result`;
+        // Use the ngrok URL from environment variables if available
+        const ngrokUrl = (import.meta as any).env?.VITE_NGROK_URL;
+        if (ngrokUrl) {
+          returnUrl = `${ngrokUrl}/payment-result`;
+        } else if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+          // If accessing via IP, use the current origin
+          returnUrl = `${window.location.origin}/payment-result`;
         } else {
-          returnUrl = `${protocol}//${hostname}:3000/payment-result`;
+          // For localhost, we still need a public URL for MoMo to redirect to
+          // In development, you should set VITE_NGROK_URL in your .env file
+          returnUrl = `${ngrokUrl || window.location.origin}/payment-result`;
         }
       } else {
         // Fallback

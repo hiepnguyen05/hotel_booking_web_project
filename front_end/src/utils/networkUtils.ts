@@ -45,7 +45,26 @@ export function getAccessLogs() {
 export function isUsingNgrok(): boolean {
   if (typeof window !== 'undefined') {
     const origin = window.location.origin;
-    return origin.includes('.ngrok.io') || origin.includes('.ngrok.app') || origin.includes('.ngrok-free.dev');
+    return origin.includes('.ngrok.io') || 
+           origin.includes('.ngrok.app') || 
+           origin.includes('.ngrok-free.dev') ||
+           origin.includes('.ngrok.io') ||
+           origin.includes('.ngrok.app') ||
+           origin.includes('.ngrok-free.dev');
+  }
+  return false;
+}
+
+/**
+ * Check if we're running in a production environment (deployed to Vercel, Netlify, etc.)
+ */
+export function isDeployedEnvironment(): boolean {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    return hostname.includes('.vercel.app') || 
+           hostname.includes('.netlify.app') || 
+           hostname.includes('.github.io') ||
+           (hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.startsWith('172.16'));
   }
   return false;
 }
