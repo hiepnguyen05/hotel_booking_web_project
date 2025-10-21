@@ -3,6 +3,9 @@ import React, { useState } from 'react'
 const ERROR_IMG_SRC =
   'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBvcGFjaXR5PSIuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIzLjciPjxyZWN0IHg9IjE2IiB5PSIxNiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiByeD0iNiIvPjxwYXRoIGQ9Im0xNiA1OCAxNi0xOCAzMiAzMiIvPjxjaXJjbGUgY3g9IjUzIiBjeT0iMzUiIHI9IjciLz48L3N2Zz4KCg=='
 
+// Placeholder image for rooms
+const PLACEHOLDER_IMG_SRC = 'https://images.unsplash.com/photo-1632598024410-3d8f24daab57?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHhsdXh1cnklMjBob3RlbCUyMHJvb20lMjBpbnRlcmlvcnxlbnwxfHx8fDE3NTkyMjkwNjR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral';
+
 export interface ImageWithFallbackProps {
   src?: string;
   alt?: string;
@@ -34,16 +37,16 @@ export function ImageWithFallback({
     setDidError(true)
   }
 
-  // If src is empty or undefined, show error image
+  // If src is empty or undefined, show placeholder image
   if (!src) {
-    console.log('ImageWithFallback: No src provided, showing error image');
+    console.log('ImageWithFallback: No src provided, showing placeholder image');
     return (
       <div
         className={`inline-block bg-gray-100 text-center align-middle ${className ?? ''}`}
         style={style}
       >
         <div className="flex items-center justify-center w-full h-full">
-          <img src={ERROR_IMG_SRC} alt="Error loading image" {...rest} />
+          <img src={PLACEHOLDER_IMG_SRC} alt={alt || "Placeholder"} {...rest} />
         </div>
       </div>
     )
@@ -69,7 +72,7 @@ export function ImageWithFallback({
       style={style}
     >
       <div className="flex items-center justify-center w-full h-full">
-        <img src={ERROR_IMG_SRC} alt="Error loading image" {...rest} data-original-url={src} />
+        <img src={PLACEHOLDER_IMG_SRC} alt={alt || "Error loading image"} {...rest} data-original-url={src} />
       </div>
     </div>
   ) : (

@@ -3,6 +3,36 @@ const Room = require("../models/room.model");
 const fs = require("fs");
 const path = require("path");
 
+// Helper function to check if image file exists
+function imageExists(imagePath) {
+  if (!imagePath) return false;
+  
+  // Only check local files that start with /uploads/
+  if (imagePath.startsWith('/uploads/')) {
+    try {
+      const fullPath = path.join(__dirname, '../../', imagePath);
+      return fs.existsSync(fullPath);
+    } catch (err) {
+      console.error('Error checking image existence:', err);
+      return false;
+    }
+  }
+  
+  // For external URLs, assume they exist
+  if (imagePath.startsWith('http')) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Helper function to filter valid images
+function filterValidImages(images) {
+  if (!Array.isArray(images)) return [];
+  
+  return images.filter(imagePath => imageExists(imagePath));
+}
+
 // Lấy danh sách phòng
 exports.list = async (req, res) => {
     try {
@@ -48,10 +78,19 @@ exports.list = async (req, res) => {
             Room.countDocuments(filter),
         ]);
 
+        // Filter valid images for each room
+        const itemsWithValidImages = items.map(room => {
+            const roomObj = room.toObject();
+            if (roomObj.images && Array.isArray(roomObj.images)) {
+                roomObj.images = filterValidImages(roomObj.images);
+            }
+            return roomObj;
+        });
+
         res.json({
             success: true,
             data: {
-                items,
+                items: itemsWithValidImages,
                 pagination: {
                     page: Number(page),
                     limit: Number(limit),
@@ -69,7 +108,17 @@ exports.list = async (req, res) => {
 exports.get = async (req, res) => {
     try {
         const room = await Room.findById(req.params.id);
-        res.json({ success: true, data: room });
+        if (!room) {
+            return res.status(404).json({ success: false, message: "Room not found" });
+        }
+        
+        // Filter valid images
+        const roomObj = room.toObject();
+        if (roomObj.images && Array.isArray(roomObj.images)) {
+            roomObj.images = filterValidImages(roomObj.images);
+        }
+        
+        res.json({ success: true, data: roomObj });
     } catch (err) {
         res.status(404).json({ success: false, message: err.message });
     }
@@ -161,7 +210,13 @@ exports.update = async (req, res) => {
             });
         }
 
-        res.json({ success: true, data: room });
+        // Filter valid images before returning
+        const roomObj = room.toObject();
+        if (roomObj.images && Array.isArray(roomObj.images)) {
+            roomObj.images = filterValidImages(roomObj.images);
+        }
+
+        res.json({ success: true, data: roomObj });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
     }
@@ -170,6 +225,28 @@ exports.update = async (req, res) => {
 // Xóa phòng
 exports.remove = async (req, res) => {
     try {
+        const room = await Room.findById(req.params.id);
+        if (!room) {
+            return res.status(404).json({ success: false, message: "Room not found" });
+        }
+
+        // Delete image files from filesystem
+        if (room.images && Array.isArray(room.images)) {
+            room.images.forEach(imagePath => {
+                // Only delete files that start with /uploads/rooms/
+                if (imagePath.startsWith('/uploads/rooms/')) {
+                    const fullPath = path.join(__dirname, '../../', imagePath);
+                    fs.unlink(fullPath, (err) => {
+                        if (err) {
+                            console.error('Error deleting file:', fullPath, err);
+                        } else {
+                            console.log('Successfully deleted file:', fullPath);
+                        }
+                    });
+                }
+            });
+        }
+
         await roomService.deleteRoom(req.params.id);
         res.json({ success: true, message: "Room deleted" });
     } catch (err) {

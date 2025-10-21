@@ -1,5 +1,37 @@
 const Room = require("../models/room.model");
 const BookingService = require("../services/booking.service");
+const fs = require("fs");
+const path = require("path");
+
+// Helper function to check if image file exists
+function imageExists(imagePath) {
+  if (!imagePath) return false;
+  
+  // Only check local files that start with /uploads/
+  if (imagePath.startsWith('/uploads/')) {
+    try {
+      const fullPath = path.join(__dirname, '../../', imagePath);
+      return fs.existsSync(fullPath);
+    } catch (err) {
+      console.error('Error checking image existence:', err);
+      return false;
+    }
+  }
+  
+  // For external URLs, assume they exist
+  if (imagePath.startsWith('http')) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Helper function to filter valid images
+function filterValidImages(images) {
+  if (!Array.isArray(images)) return [];
+  
+  return images.filter(imagePath => imageExists(imagePath));
+}
 
 class RoomService {
     async getAllRooms(query = {}) {
@@ -38,8 +70,17 @@ class RoomService {
             Room.countDocuments(filter),
         ]);
 
+        // Filter valid images for each room
+        const itemsWithValidImages = items.map(room => {
+            const roomObj = room.toObject();
+            if (roomObj.images && Array.isArray(roomObj.images)) {
+                roomObj.images = filterValidImages(roomObj.images);
+            }
+            return roomObj;
+        });
+
         return {
-            items,
+            items: itemsWithValidImages,
             pagination: {
                 page: Number(page),
                 limit: Number(limit),
@@ -50,7 +91,16 @@ class RoomService {
     }
 
     async getById(roomId) {
-        return await Room.findOne({ _id: roomId, status: "available" });
+        const room = await Room.findOne({ _id: roomId, status: "available" });
+        if (!room) return null;
+        
+        // Filter valid images
+        const roomObj = room.toObject();
+        if (roomObj.images && Array.isArray(roomObj.images)) {
+            roomObj.images = filterValidImages(roomObj.images);
+        }
+        
+        return roomObj;
     }
 
     async createRoom(roomData) {
@@ -160,8 +210,17 @@ class RoomService {
 
         console.log(`After filtering, ${filteredRooms.length} rooms remain`);
 
+        // Filter valid images for each room
+        const roomsWithValidImages = filteredRooms.map(room => {
+            const roomObj = room.toObject();
+            if (roomObj.images && Array.isArray(roomObj.images)) {
+                roomObj.images = filterValidImages(roomObj.images);
+            }
+            return roomObj;
+        });
+
         // Giới hạn số lượng phòng theo roomCount
-        const rooms = filteredRooms.slice(0, roomCount);
+        const rooms = roomsWithValidImages.slice(0, roomCount);
 
         console.log(`Returning ${rooms.length} available rooms:`, rooms.map(r => ({
             id: r._id,
