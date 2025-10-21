@@ -100,8 +100,12 @@ export function getApiBaseUrl(): string {
   // @ts-ignore: import.meta.env is not properly typed in TypeScript
   if (import.meta.env?.VITE_API_BASE_URL) {
     // @ts-ignore: import.meta.env is not properly typed in TypeScript
-    return import.meta.env.VITE_API_BASE_URL;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    console.log('[NETWORK UTILS] Using VITE_API_BASE_URL from env:', baseUrl);
+    return baseUrl;
   }
+  
+  console.warn('[NETWORK UTILS] VITE_API_BASE_URL not found in env, using fallback');
   
   // Check if we're running in development
   // @ts-ignore: import.meta.env is not properly typed in TypeScript
@@ -116,6 +120,7 @@ export function getApiBaseUrl(): string {
       const frontendOrigin = window.location.origin;
       // Replace frontend port (3000) with backend port (5000)
       const backendOrigin = frontendOrigin.replace(':3000', ':5000');
+      console.log('[NETWORK UTILS] Using ngrok URL:', `${backendOrigin}/api`);
       return `${backendOrigin}/api`;
     }
   }
@@ -127,14 +132,17 @@ export function getApiBaseUrl(): string {
       const frontendOrigin = window.location.origin;
       // Replace frontend port (3000) with backend port (5000)
       const backendOrigin = frontendOrigin.replace(':3000', ':5000');
+      console.log('[NETWORK UTILS] Using local network URL:', `${backendOrigin}/api`);
       return `${backendOrigin}/api`;
     }
     
     // Default to localhost if we can't determine the IP
-    return 'https://hotel-booking-web-project.onrender.com/api';
+    console.log('[NETWORK UTILS] Using localhost fallback');
+    return 'http://localhost:5000/api';
   }
   
   // In production, use the Render URL
+  console.log('[NETWORK UTILS] Using production URL');
   return 'https://hotel-booking-web-project.onrender.com/api';
 }
 

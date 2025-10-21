@@ -2,6 +2,7 @@ import { getApiBaseUrl } from '../utils/networkUtils';
 
 // API Configuration - automatically determined based on environment
 const API_BASE_URL = getApiBaseUrl();
+console.log('[API CLIENT] Base URL:', API_BASE_URL);
 
 // API Client class
 class ApiClient {
@@ -9,6 +10,7 @@ class ApiClient {
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
+    console.log('[API CLIENT] Initialized with base URL:', baseURL);
   }
 
   private getToken(): string | null {
@@ -28,9 +30,9 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+    console.log('[API CLIENT] Making request to:', url);
 
     const token = this.getToken();
-    console.log('[API CLIENT] Making request to:', url);
     console.log('[API CLIENT] Auth token present:', !!token);
 
     const config: RequestInit = {
@@ -51,7 +53,8 @@ class ApiClient {
       const response = await fetch(url, config);
       console.log('[API CLIENT] Response received:', {
         status: response.status,
-        statusText: response.statusText
+        statusText: response.statusText,
+        url: response.url
       });
 
       if (!response.ok) {
@@ -98,6 +101,7 @@ class ApiClient {
   // Upload file
   async upload<T>(endpoint: string, formData: FormData, method: string = 'POST'): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+    console.log('[API CLIENT] Making upload request to:', url);
 
     const config: RequestInit = {
       method: method,
