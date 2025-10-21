@@ -513,17 +513,24 @@ class BookingService {
                 booking.momoTransactionId = transId;
                 console.log("[SERVICE] Updated booking status to paid and confirmed");
 
-                // Gửi email xác nhận đặt phòng
+                // Gửi email xác nhận đặt phòng (non-blocking)
                 if (booking.room) {
-                    console.log("[SERVICE] Sending booking confirmation email to:", booking.email);
-                    const emailResult = await EmailService.sendBookingConfirmation(booking, booking.room, booking.user);
-                    console.log("[SERVICE] Email result:", JSON.stringify(emailResult, null, 2));
+                    console.log("[SERVICE] Scheduling booking confirmation email to:", booking.email);
+                    // Use setImmediate to send email asynchronously without blocking the response
+                    setImmediate(async () => {
+                        try {
+                            const emailResult = await EmailService.sendBookingConfirmation(booking, booking.room, booking.user);
+                            console.log("[SERVICE] Email result:", JSON.stringify(emailResult, null, 2));
 
-                    if (!emailResult.success) {
-                        console.error('[SERVICE] Failed to send booking confirmation email:', emailResult.error);
-                    } else {
-                        console.log('[SERVICE] Booking confirmation email sent successfully');
-                    }
+                            if (!emailResult.success) {
+                                console.error('[SERVICE] Failed to send booking confirmation email:', emailResult.error);
+                            } else {
+                                console.log('[SERVICE] Booking confirmation email sent successfully');
+                            }
+                        } catch (emailError) {
+                            console.error('[SERVICE] Error sending booking confirmation email asynchronously:', emailError);
+                        }
+                    });
                 }
             } else if (resultCode === 1006) {
                 console.log("[SERVICE] User denied payment, updating booking status");
