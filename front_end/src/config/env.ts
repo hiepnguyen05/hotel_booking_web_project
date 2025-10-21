@@ -8,7 +8,7 @@ export const env = {
   // App Configuration
   APP_NAME: 'Luxury Beach Resort',
   APP_VERSION: '1.0.0',
-  NODE_ENV: 'development',
+  NODE_ENV: (import.meta as any).env?.VITE_NODE_ENV || 'production',
   
   // Upload Configuration
   MAX_FILE_SIZE: 5242880, // 5MB
@@ -28,8 +28,8 @@ export const env = {
   ENABLE_PAYMENT: true,
   
   // Development
-  isDevelopment: true,
-  isProduction: false,
+  isDevelopment: (import.meta as any).env?.VITE_NODE_ENV === 'development',
+  isProduction: (import.meta as any).env?.VITE_NODE_ENV === 'production',
 } as const;
 
 // Export individual configs for convenience

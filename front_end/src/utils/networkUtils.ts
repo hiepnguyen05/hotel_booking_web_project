@@ -119,7 +119,7 @@ export function getApiBaseUrl(): string {
   
   // Check if we're running in development
   // @ts-ignore: import.meta.env is not properly typed in TypeScript
-  const isDevelopment = env?.MODE === 'development';
+  const isDevelopment = env?.MODE === 'development' || env?.VITE_NODE_ENV === 'development';
   console.log('[NETWORK UTILS] Is development:', isDevelopment);
   
   // Check if we're using ngrok

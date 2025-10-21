@@ -19,13 +19,29 @@ export function getFullImageUrl(imagePath: string): string {
 
   // If it's a relative path that starts with /uploads, serve it from the base URL without /api
   if (imagePath.startsWith('/uploads')) {
-    // Handle case where API_BASE_URL might end with /api or not
-    const baseUrlWithoutApi = API_BASE_URL.replace('/api', '');
-    // Remove trailing slash if exists and ensure no double slashes
-    const cleanBaseUrl = baseUrlWithoutApi.endsWith('/') ? baseUrlWithoutApi.slice(0, -1) : baseUrlWithoutApi;
-    // Ensure imagePath starts with /
-    const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-    return `${cleanBaseUrl}${cleanPath}`;
+    // For production environment, use the API base URL directly (without /api)
+    // For local development, we need to handle differently
+    const isProduction = (import.meta as any).env?.VITE_NODE_ENV === 'production';
+    
+    if (isProduction) {
+      // In production, the API_BASE_URL should point to the correct domain
+      // Remove /api from the end if it exists
+      const baseUrlWithoutApi = API_BASE_URL.replace(/\/api$/, '');
+      // Remove trailing slash if exists and ensure no double slashes
+      const cleanBaseUrl = baseUrlWithoutApi.endsWith('/') ? baseUrlWithoutApi.slice(0, -1) : baseUrlWithoutApi;
+      // Ensure imagePath starts with /
+      const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+      return `${cleanBaseUrl}${cleanPath}`;
+    } else {
+      // In development, we might need to use a different approach
+      // Handle case where API_BASE_URL might end with /api or not
+      const baseUrlWithoutApi = API_BASE_URL.replace('/api', '');
+      // Remove trailing slash if exists and ensure no double slashes
+      const cleanBaseUrl = baseUrlWithoutApi.endsWith('/') ? baseUrlWithoutApi.slice(0, -1) : baseUrlWithoutApi;
+      // Ensure imagePath starts with /
+      const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+      return `${cleanBaseUrl}${cleanPath}`;
+    }
   }
 
   // For other relative paths, prepend the API base URL
