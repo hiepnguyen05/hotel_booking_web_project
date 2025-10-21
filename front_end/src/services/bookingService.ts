@@ -350,7 +350,7 @@ class BookingService {
   async checkBookingPaymentStatus(bookingId: string): Promise<any> {
     try {
       // Sử dụng endpoint mới để lấy thông tin booking
-      const response: any = await apiClient.get(`/bookings/${bookingId}`);
+      const response: any = await apiClient.get(`/bookings/${bookingId}/payment-status`);
 
       // Kiểm tra theo đúng format response của backend
       if (response.status === 200) {

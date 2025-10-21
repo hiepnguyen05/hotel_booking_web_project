@@ -58,7 +58,8 @@ export function PaymentResult() {
         console.log(`[POLLING] Attempt ${attempts}/${maxAttempts} for booking ${bookingId}`);
         
         // Fetch booking details directly from backend
-        const updatedBooking: any = await bookingService.getBookingById(bookingId);
+        const paymentStatusResult: any = await bookingService.checkBookingPaymentStatus(bookingId);
+        const updatedBooking: any = paymentStatusResult.success ? paymentStatusResult.data : null;
         
         if (updatedBooking) {
           console.log(`[POLLING] Booking data received:`, updatedBooking);
