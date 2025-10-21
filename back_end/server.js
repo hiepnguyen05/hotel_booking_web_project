@@ -105,6 +105,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// Add specific logging for auth routes
+app.use("/api/auth", (req, res, next) => {
+  console.log(`[AUTH] ${req.method} ${req.originalUrl}`);
+  console.log(`[AUTH] Request body:`, req.body);
+  next();
+});
+
 // Add a specific middleware for MoMo payment routes to debug them
 app.use("/api/bookings/:bookingId/momo-payment", (req, res, next) => {
   console.log('[MOMO DEBUG] MoMo payment route middleware triggered');

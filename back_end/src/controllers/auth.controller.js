@@ -46,66 +46,75 @@ exports.register = async (req, res) => {
 // Đăng nhập
 exports.login = async (req, res) => {
     try {
+        console.log('[LOGIN] Request received:', req.body);
         const { email, password } = req.body;
 
         // 1. Kiểm tra dữ liệu đầu vào
         if (!email || !password) {
+            console.log('[LOGIN] Missing email or password');
             return res.status(400).json({ message: "Email and password are required" });
         }
 
         // 2. Tìm user trong DB
+        console.log('[LOGIN] Searching for user with email:', email);
         const user = await User.findOne({ email });
         if (!user) {
+            console.log('[LOGIN] User not found');
             return res.status(401).json({ message: "Invalid email or password" });
         }
 
         // 3. Check nếu tài khoản bị khóa
         if (user.isLocked) {
+            console.log('[LOGIN] User account is locked');
             return res.status(403).json({ message: "Your account has been locked. Please contact admin." });
         }
 
         // 4. Kiểm tra mật khẩu
+        console.log('[LOGIN] Comparing passwords');
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+            console.log('[LOGIN] Password mismatch');
             return res.status(401).json({ message: "Invalid email or password" });
         }
 
- // 5. Tạo JWT token (access + refresh)
- const accessToken = jwt.sign(
-     { 
-         id: user._id, 
-         username: user.username,
-         email: user.email,
-         role: user.role 
-     },
-     config.JWT_SECRET,
-     { expiresIn: "15m" }
- );
+        console.log('[LOGIN] Password matched, generating tokens');
+        // 5. Tạo JWT token (access + refresh)
+        const accessToken = jwt.sign(
+            { 
+                id: user._id, 
+                username: user.username,
+                email: user.email,
+                role: user.role 
+            },
+            config.JWT_SECRET,
+            { expiresIn: "15m" }
+        );
 
- const refreshToken = jwt.sign(
-     { id: user._id },
-     config.JWT_SECRET,
-     { expiresIn: "7d" }
- );
+        const refreshToken = jwt.sign(
+            { id: user._id },
+            config.JWT_SECRET,
+            { expiresIn: "7d" }
+        );
 
- user.refreshToken = refreshToken;
- await user.save();
+        user.refreshToken = refreshToken;
+        await user.save();
 
- // 6. Trả về response
- return res.json({
-     message: "Login successful",
-     accessToken,
-     refreshToken,
-     user: {
-         id: user._id,
-         username: user.username,
-         email: user.email,
-         role: user.role,
-         isLocked: user.isLocked
-     }
- });
+        // 6. Trả về response
+        console.log('[LOGIN] Login successful for user:', user.email);
+        return res.json({
+            message: "Login successful",
+            accessToken,
+            refreshToken,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                isLocked: user.isLocked
+            }
+        });
     } catch (error) {
-        console.error("Login error:", error);
+        console.error("[LOGIN] Login error:", error);
         return res.status(500).json({ message: "Server error" });
     }
 };
