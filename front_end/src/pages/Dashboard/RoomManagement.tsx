@@ -9,7 +9,7 @@ import { Plus, Edit, Trash2, Search, Eye, RefreshCw } from "lucide-react";
 import { Room, roomService } from "../../services/roomService";
 import { AddRoomDialog } from "./AddRoomDialog";
 import { EditRoomDialog } from "./EditRoomDialog";
-
+import { getFullImageUrl } from '../../utils/imageUtils';
 
 // Get the API base URL from environment variables or use default
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'https://hotel-booking-web-project.onrender.com/api';
@@ -199,7 +199,7 @@ export function RoomManagement() {
                   {room.images && room.images.length > 0 && (
                     <div className="w-full h-32 rounded-lg overflow-hidden">
                       <img
-                        src={room.images[0].startsWith('http') ? room.images[0] : room.images[0].startsWith('/uploads') ? `${API_BASE_URL.replace('/api', '')}${room.images[0]}` : `${API_BASE_URL}${room.images[0].startsWith('/') ? room.images[0] : `/${room.images[0]}`}`}
+                        src={getFullImageUrl(room.images[0])}
                         alt={room.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
