@@ -196,7 +196,14 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Static files for uploaded images
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// In production on Render, we need to serve uploads directory differently
+if (process.env.NODE_ENV === 'production') {
+  // Serve uploads directory as static files
+  app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+} else {
+  // In development, serve uploads directory as static files
+  app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+}
 
 // Kết nối MongoDB
 mongoose.connect(config.MONGO_URI)
