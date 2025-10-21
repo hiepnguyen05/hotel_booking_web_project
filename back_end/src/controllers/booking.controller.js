@@ -233,29 +233,34 @@ class BookingController {
       const result = await BookingService.handleMoMoCallback(callbackData);
       console.log("[CALLBACK] BookingService result:", result);
 
+      // ALWAYS return HTTP 200 to MoMo immediately to prevent retries
+      // This is critical for proper callback handling
       if (!result.success) {
         console.error("[CALLBACK] BookingService failed:", result.error || result);
-        // Respond with 200 so MoMo doesn't retry infinitely
+        // Still return 200 to MoMo but log the error
         return res.status(200).json({
-          status: 400,
-          message: "Failed to process payment",
+          status: 200,
+          message: "Callback received but processing failed",
           data: null,
           timestamp: new Date().toISOString()
         });
       }
 
-      // Redirect to payment result page with all MoMo parameters
-      // This will allow the frontend to display the same information
-      const paymentResultUrl = `${process.env.FRONTEND_URL || 'https://hotel-booking-web-project.onrender.com'}/payment-result?${new URLSearchParams(callbackData).toString()}`;
-      console.log("[CALLBACK] Redirecting to payment result page:", paymentResultUrl);
-      return res.redirect(302, paymentResultUrl);
+      // Return success response to MoMo immediately
+      console.log("[CALLBACK] Successfully processed callback, returning 200 to MoMo");
+      return res.status(200).json({
+        status: 200,
+        message: "Success",
+        data: null,
+        timestamp: new Date().toISOString()
+      });
 
     } catch (error) {
       console.error("[CALLBACK] Handle MoMo callback error:", error);
-      // Always return 200 to MoMo to prevent retries, but with proper JSON format
+      // ALWAYS return 200 to MoMo to prevent infinite retries
       return res.status(200).json({
-        status: 500,
-        message: error.message,
+        status: 200,
+        message: "Callback received with error",
         data: null,
         timestamp: new Date().toISOString()
       });
@@ -277,7 +282,7 @@ class BookingController {
   }
 
   /**
-   * Check booking payment status
+   * Check booking payment status and return MoMo callback data if available
    */
   async checkBookingPaymentStatus(req, res) {
     try {
@@ -290,8 +295,16 @@ class BookingController {
         return formatResponse(res, 404, "Booking not found");
       }
 
-      // Return the full booking object
-      return formatResponse(res, 200, "Booking payment status retrieved successfully", booking);
+      // Return the booking object with MoMo callback data if available
+      return formatResponse(res, 200, "Booking payment status retrieved successfully", {
+        _id: booking._id,
+        bookingCode: booking.bookingCode,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus,
+        momoCallbackData: booking.momoCallbackData, // Include MoMo callback data for frontend
+        createdAt: booking.createdAt,
+        updatedAt: booking.updatedAt
+      });
     } catch (error) {
       console.error("Check booking payment status error:", error);
       return formatResponse(res, 400, error.message);

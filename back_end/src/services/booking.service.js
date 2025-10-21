@@ -495,6 +495,9 @@ class BookingService {
                 return { success: false, error: "Booking not found" };
             }
 
+            // Store the callback data in the booking for frontend to retrieve
+            booking.momoCallbackData = callbackData;
+            
             // Update booking status based on payment result
             if (resultCode === 0) {
                 console.log("[SERVICE] Payment successful, updating booking status");
@@ -542,7 +545,8 @@ class BookingService {
                 data: {
                   bookingId: booking._id,
                   paymentStatus: booking.paymentStatus,
-                  bookingStatus: booking.status
+                  bookingStatus: booking.status,
+                  callbackData: callbackData // Return callback data for frontend redirect
                 }
             };
         } catch (error) {

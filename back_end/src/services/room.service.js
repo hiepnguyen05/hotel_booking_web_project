@@ -181,14 +181,15 @@ class RoomService {
         const availableRooms = await Room.find({
             capacity: { $gte: totalGuests },
             status: "available"
-        });
+        }).sort({ createdAt: -1 }); // Sắp xếp theo thời gian tạo để tránh trả về cùng một phòng
 
         console.log(`Found ${availableRooms.length} rooms with sufficient capacity`);
         console.log('Available rooms before filtering:', availableRooms.map(r => ({
             id: r._id,
             name: r.name,
             status: r.status,
-            capacity: r.capacity
+            capacity: r.capacity,
+            createdAt: r.createdAt
         })));
 
         // Lấy danh sách phòng đã được đặt trong khoảng thời gian
@@ -219,12 +220,16 @@ class RoomService {
             return roomObj;
         });
 
+        // Sắp xếp lại các phòng theo thời gian tạo (mới nhất trước)
+        roomsWithValidImages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
         // Giới hạn số lượng phòng theo roomCount
         const rooms = roomsWithValidImages.slice(0, roomCount);
 
         console.log(`Returning ${rooms.length} available rooms:`, rooms.map(r => ({
             id: r._id,
-            name: r.name
+            name: r.name,
+            createdAt: r.createdAt
         })));
         console.log('=== END DEBUG ROOM SEARCH ===');
 

@@ -91,6 +91,9 @@ const bookingSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        momoCallbackData: {
+            type: mongoose.Schema.Types.Mixed, // Store the full callback data for frontend redirect
+        },
         bookingCode: {
             type: String,
             unique: true,

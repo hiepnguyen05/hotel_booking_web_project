@@ -224,6 +224,9 @@ router.put("/:id", AuthMiddleware.authenticate, updateBookingValidation, Booking
 router.delete("/:id", AuthMiddleware.authenticate, BookingController.cancelBooking);
 router.post("/:id/complete", AuthMiddleware.authenticate, BookingController.completeBooking);
 
+// Add route to check payment status (no authentication required for polling)
+router.get("/:id/payment-status", BookingController.checkBookingPaymentStatus);
+
 // Routes for admin
 
 module.exports = router;
