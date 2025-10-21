@@ -211,6 +211,34 @@ app.use("/api/cancellation-requests", cancellationRequestRoutes);
 const reviewRoutes = require("./src/routes/review.route");
 app.use("/api/reviews", reviewRoutes);
 
+// Add a root route to handle the main page
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: 200,
+    message: "Welcome to Hotel Booking API",
+    data: {
+      version: "1.0.0",
+      description: "API for hotel booking system",
+      endpoints: {
+        auth: "/api/auth",
+        rooms: "/api/rooms",
+        bookings: "/api/bookings",
+        reviews: "/api/reviews",
+        admin: "/api/admin"
+      }
+    }
+  });
+});
+
+// Add a health check route
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: 200,
+    message: "Server is running",
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Khởi động server
 const server = app.listen(config.PORT, '0.0.0.0', () => {
 	const localIP = getLocalIP();
