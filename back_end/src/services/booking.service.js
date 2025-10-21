@@ -368,13 +368,18 @@ class BookingService {
             const orderInfo = `Thanh toán đặt phòng ${booking.bookingCode} - ${booking.room.name}`;
             console.log('[BOOKING SERVICE] Order info:', orderInfo);
 
-            // Use NGROK URL from environment variables for backend callback
-            console.log('[BOOKING SERVICE] process.env.NGROK_URL:', process.env.NGROK_URL);
-            const NGROK_URL = process.env.NGROK_URL || 'https://braylen-noisiest-biennially.ngrok-free.dev';
-            console.log('[BOOKING SERVICE] NGROK_URL from env:', NGROK_URL);
-
-            // For notifyUrl (ipnUrl) - MoMo will send POST request to this URL
-            const finalNotifyUrl = `${NGROK_URL}/api/bookings/momo/callback`;
+            // Determine the correct notifyUrl (ipnUrl) based on environment
+            let finalNotifyUrl;
+            if (process.env.NODE_ENV === 'production') {
+                // In production, use the public Render URL
+                finalNotifyUrl = `https://hotel-booking-web-project.onrender.com/api/bookings/momo/callback`;
+            } else {
+                // In development, use NGROK URL from environment variables
+                console.log('[BOOKING SERVICE] process.env.NGROK_URL:', process.env.NGROK_URL);
+                const NGROK_URL = process.env.NGROK_URL || 'https://braylen-noisiest-biennially.ngrok-free.dev';
+                console.log('[BOOKING SERVICE] NGROK_URL from env:', NGROK_URL);
+                finalNotifyUrl = `${NGROK_URL}/api/bookings/momo/callback`;
+            }
 
             // For returnUrl (redirectUrl) - MoMo will redirect user to this URL after payment
             let finalReturnUrl = returnUrl;
