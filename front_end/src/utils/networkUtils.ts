@@ -97,27 +97,40 @@ export async function getLocalIPAddress(): Promise<string | null> {
  * In production, it uses the deployed URL
  */
 export function getApiBaseUrl(): string {
-  // @ts-ignore: import.meta.env is not properly typed in TypeScript
-  if (import.meta.env?.VITE_API_BASE_URL) {
-    // @ts-ignore: import.meta.env is not properly typed in TypeScript
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
-    console.log('[NETWORK UTILS] Using VITE_API_BASE_URL from env:', baseUrl);
-    return baseUrl;
-  }
+  console.log('[NETWORK UTILS] Determining API base URL');
   
-  console.warn('[NETWORK UTILS] VITE_API_BASE_URL not found in env, using fallback');
+  // @ts-ignore: import.meta.env is not properly typed in TypeScript
+  const env = import.meta.env;
+  console.log('[NETWORK UTILS] Environment variables:', env);
+  
+  // @ts-ignore: import.meta.env is not properly typed in TypeScript
+  if (env?.VITE_API_BASE_URL) {
+    // @ts-ignore: import.meta.env is not properly typed in TypeScript
+    const baseUrl = env.VITE_API_BASE_URL;
+    console.log('[NETWORK UTILS] Using VITE_API_BASE_URL from env:', baseUrl);
+    // Check if the URL is valid
+    if (baseUrl && baseUrl !== 'your_api_base_url_here') {
+      return baseUrl;
+    }
+    console.warn('[NETWORK UTILS] VITE_API_BASE_URL is placeholder value, using fallback');
+  } else {
+    console.warn('[NETWORK UTILS] VITE_API_BASE_URL not found in env');
+  }
   
   // Check if we're running in development
   // @ts-ignore: import.meta.env is not properly typed in TypeScript
-  const isDevelopment = import.meta.env?.MODE === 'development';
+  const isDevelopment = env?.MODE === 'development';
+  console.log('[NETWORK UTILS] Is development:', isDevelopment);
   
   // Check if we're using ngrok
   const usingNgrok = isUsingNgrok();
+  console.log('[NETWORK UTILS] Using ngrok:', usingNgrok);
   
   // In development with ngrok, construct URLs appropriately
   if (isDevelopment && usingNgrok) {
     if (typeof window !== 'undefined') {
       const frontendOrigin = window.location.origin;
+      console.log('[NETWORK UTILS] Frontend origin:', frontendOrigin);
       // Replace frontend port (3000) with backend port (5000)
       const backendOrigin = frontendOrigin.replace(':3000', ':5000');
       console.log('[NETWORK UTILS] Using ngrok URL:', `${backendOrigin}/api`);
@@ -130,6 +143,7 @@ export function getApiBaseUrl(): string {
     // If we're accessing the frontend via IP, use the same IP for backend
     if (typeof window !== 'undefined') {
       const frontendOrigin = window.location.origin;
+      console.log('[NETWORK UTILS] Frontend origin:', frontendOrigin);
       // Replace frontend port (3000) with backend port (5000)
       const backendOrigin = frontendOrigin.replace(':3000', ':5000');
       console.log('[NETWORK UTILS] Using local network URL:', `${backendOrigin}/api`);

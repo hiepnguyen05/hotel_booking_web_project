@@ -4,13 +4,27 @@ import { getApiBaseUrl } from '../utils/networkUtils';
 const API_BASE_URL = getApiBaseUrl();
 console.log('[API CLIENT] Base URL:', API_BASE_URL);
 
+// Validate the base URL
+if (!API_BASE_URL || API_BASE_URL === 'your_api_base_url_here') {
+  console.error('[API CLIENT] Invalid base URL detected:', API_BASE_URL);
+  // Use a fallback URL
+  const fallbackUrl = 'https://hotel-booking-web-project.onrender.com/api';
+  console.log('[API CLIENT] Using fallback URL:', fallbackUrl);
+}
+
 // API Client class
 class ApiClient {
   private baseURL: string;
 
   constructor(baseURL: string) {
-    this.baseURL = baseURL;
-    console.log('[API CLIENT] Initialized with base URL:', baseURL);
+    // Validate the base URL
+    if (!baseURL || baseURL === 'your_api_base_url_here') {
+      console.warn('[API CLIENT] Invalid base URL, using fallback');
+      this.baseURL = 'https://hotel-booking-web-project.onrender.com/api';
+    } else {
+      this.baseURL = baseURL;
+    }
+    console.log('[API CLIENT] Initialized with base URL:', this.baseURL);
   }
 
   private getToken(): string | null {
@@ -29,8 +43,19 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    // Validate endpoint
+    if (!endpoint) {
+      throw new Error('Endpoint is required');
+    }
+    
     const url = `${this.baseURL}${endpoint}`;
     console.log('[API CLIENT] Making request to:', url);
+
+    // Check if URL is valid
+    if (url.includes('your_api_base_url_here')) {
+      console.error('[API CLIENT] Invalid URL detected:', url);
+      throw new Error('Invalid API base URL configuration');
+    }
 
     const token = this.getToken();
     console.log('[API CLIENT] Auth token present:', !!token);
@@ -100,8 +125,19 @@ class ApiClient {
 
   // Upload file
   async upload<T>(endpoint: string, formData: FormData, method: string = 'POST'): Promise<T> {
+    // Validate endpoint
+    if (!endpoint) {
+      throw new Error('Endpoint is required');
+    }
+    
     const url = `${this.baseURL}${endpoint}`;
     console.log('[API CLIENT] Making upload request to:', url);
+
+    // Check if URL is valid
+    if (url.includes('your_api_base_url_here')) {
+      console.error('[API CLIENT] Invalid URL detected:', url);
+      throw new Error('Invalid API base URL configuration');
+    }
 
     const config: RequestInit = {
       method: method,
@@ -127,4 +163,8 @@ class ApiClient {
 }
 
 // Create and export API client instance
-export const apiClient = new ApiClient(API_BASE_URL);
+const finalBaseUrl = API_BASE_URL && API_BASE_URL !== 'your_api_base_url_here' 
+  ? API_BASE_URL 
+  : 'https://hotel-booking-web-project.onrender.com/api';
+  
+export const apiClient = new ApiClient(finalBaseUrl);
